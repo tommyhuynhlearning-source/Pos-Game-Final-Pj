@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POS Tech Support — Game Structure</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Bỏ qua tới nội dung</a>
+
+<header class="masthead">
+  <div class="masthead-in">
+    <p class="eyebrow">GDD → Unity · Docs/ ↔ Assets/Scripts/</p>
+    <h1>POS Tech&nbsp;Support<span class="dot">.</span><br><span class="h1-sub">structure của game</span></h1>
+    <p class="lede">
+      Ca đêm 20:00 → 04:00. Customer gọi tới báo lỗi POS, player verify đúng tiệm, remote vào desktop ảo,
+      lần theo dependency để tìm root cause, fix đúng thứ tự, rồi đóng ticket. 60 đêm, ≥150 ticket.
+      Trang này dựng lại toàn bộ kiến trúc từ 4 file design doc và đối chiếu với code C# đang có.
+    </p>
+    <ul class="stats">
+      <li><b data-count="16">16</b><span>manager trong doc</span></li>
+      <li><b data-count="13" class="ok">13</b><span>đã có code</span></li>
+      <li><b data-count="2" class="warn">2</b><span>lệch doc ↔ code</span></li>
+      <li><b data-count="1" class="bad">1</b><span>chưa viết</span></li>
+    </ul>
+    <button id="theme" class="theme" type="button" aria-live="polite">Chế độ sáng</button>
+  </div>
+</header>
+
+<div class="shell">
+
+  <nav class="rail" aria-label="Mục lục">
+    <ol>
+      <li><a href="#loop">Ba vòng lặp</a></li>
+      <li><a href="#layers">4 lớp kiến trúc</a></li>
+      <li><a href="#managers">16 manager</a></li>
+      <li><a href="#night">Luồng một đêm</a></li>
+      <li><a href="#cascade">Dependency cascade</a></li>
+      <li><a href="#data">SO → runtime</a></li>
+      <li><a href="#issues">Bộ issue P1–P7</a></li>
+      <li><a href="#gap">Milestone &amp; khoảng lệch</a></li>
+    </ol>
+  </nav>
+
+  <main id="main">
+
+    <!-- ============ 1. LOOPS ============ -->
+    <section id="loop">
+      <h2><span class="num">01</span>Ba vòng lặp lồng nhau</h2>
+      <p class="note">
+        Mỗi vòng có một manager làm chủ và một state riêng. Nhầm tầng ở đây là nguồn bug hay gặp nhất:
+        <code>nightMails</code> reset mỗi đêm, còn <code>warnings</code> thì không.
+      </p>
+
+      <div class="rings">
+        <div class="ring ring-campaign">
+          <p class="ring-tag">CampaignManager · <span>CampaignState</span> · persistent</p>
+          <h3>Campaign — 60 đêm</h3>
+          <p class="ring-body">day, ticketsResolved, warnings, currency. Chỉ lớp này sống xuyên nhiều đêm và chỉ lớp này được gọi SaveManager.</p>
+          <p class="ring-rule"><b>WIN</b> hết 60 ngày &amp; ≥150 ticket · <b>LOSE</b> warnings &gt; 3</p>
+
+          <div class="ring ring-night">
+            <p class="ring-tag">ShiftManager · <span>NightState</span> · reset mỗi đêm</p>
+            <h3>Night — ca 8 phút thật</h3>
+            <p class="ring-body">elapsed quy đổi thành đồng hồ trong game (20h→4h). Tới mốc spawnTimes thì đẩy ticket vào hàng đợi.</p>
+            <p class="ring-rule"><b>FAIL ĐÊM</b> 3 mail phàn nàn → +1 warning</p>
+
+            <div class="ring ring-ticket">
+              <p class="ring-tag">TicketManager · <span>ProblemInstance</span> · một cuộc gọi</p>
+              <h3>Ticket — một cuộc gọi</h3>
+              <p class="ring-body">Ringing → Answer → verify → remote → diagnose → fix → Hang Up.</p>
+              <p class="ring-rule"><b>2 enum khác nhau:</b> lifecycle (Queued…Abandoned) vs verdict (InProgress/Resolved/Degraded)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 2. LAYERS ============ -->
+    <section id="layers">
+      <h2><span class="num">02</span>Bốn lớp kiến trúc</h2>
+      <p class="note">Đọc từ trên xuống: dữ liệu tĩnh → state runtime → luật chơi → AI. Lớp dưới không bao giờ ghi ngược lên lớp trên.</p>
+
+      <div class="layers" id="layerStack"></div>
+
+      <p class="axiom">
+        <b>Ranh giới bất biến</b> — DialoguePolicy chỉ nhận <em>view rút gọn</em> của Issue
+        (<code>symptom.layman</code> + định danh), không nhận cả <code>IssueSO</code>.
+        Đó là cách bảo đảm customer AI không có đáp án để lộ.
+      </p>
+    </section>
+
+    <!-- ============ 3. MANAGERS ============ -->
+    <section id="managers">
+      <h2><span class="num">03</span>16 manager, nhóm theo việc</h2>
+      <p class="note">Bấm vào một manager để xem purpose, cơ chế, và nó gọi ai / bị ai gọi. Viền màu = trạng thái code.</p>
+
+      <div class="legend">
+        <span class="chip chip-ok">đã implement</span>
+        <span class="chip chip-warn">code có nhưng lệch doc</span>
+        <span class="chip chip-bad">chưa có file</span>
+      </div>
+
+      <div class="mgr-wrap">
+        <div class="mgr-groups" id="mgrGroups"></div>
+        <aside class="detail" id="detail" tabindex="-1" aria-live="polite">
+          <p class="detail-empty">Chọn một manager ở bên trái.</p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ============ 4. NIGHT FLOW ============ -->
+    <section id="night">
+      <h2><span class="num">04</span>Luồng gọi trong một đêm</h2>
+      <p class="note">Thứ tự thật, đọc từ <code>manager.md</code>. Đây là chuỗi tuần tự nên số bước có nghĩa.</p>
+      <ol class="flow" id="flow"></ol>
+    </section>
+
+    <!-- ============ 5. CASCADE ============ -->
+    <section id="cascade">
+      <h2><span class="num">05</span>Dependency cascade — lỗi lan xuôi, fix đi ngược</h2>
+      <p class="note">
+        Bấm một module để giả lập nó hỏng: downstream chuyển <b>Blocked</b> (ẩn clue), module đang hỏng là <b>Error</b> (luôn phải chẩn đoán được).
+        Phân biệt sai hai cái này là bug từng gặp với P6/P7.
+      </p>
+
+      <div class="graph" id="graph">
+        <div class="graph-row">
+          <button class="mod" data-mod="Network" type="button">
+            <span class="mod-name">Network</span>
+            <span class="mod-own">isOnline = false</span>
+            <span class="mod-state">OK</span>
+          </button>
+          <span class="arrow" aria-hidden="true"></span>
+          <button class="mod" data-mod="POSSoftware" type="button">
+            <span class="mod-name">POS Software <em>HUB</em></span>
+            <span class="mod-own">receiptTemplate = Broken</span>
+            <span class="mod-state">OK</span>
+          </button>
+          <span class="arrow arrow-split" aria-hidden="true"></span>
+          <div class="graph-branch">
+            <button class="mod" data-mod="Terminal" type="button">
+              <span class="mod-name">Terminal</span>
+              <span class="mod-own">sai Wi-Fi (P6) · IP đăng ký cũ (P7)</span>
+              <span class="mod-state">OK</span>
+            </button>
+            <div class="graph-sub">
+              <button class="mod" data-mod="Printer" type="button">
+                <span class="mod-name">Printer</span>
+                <span class="mod-own">paper / driver / removed</span>
+                <span class="mod-state">OK</span>
+              </button>
+              <span class="arrow" aria-hidden="true"></span>
+              <button class="mod" data-mod="CashDrawer" type="button">
+                <span class="mod-name">Cash Drawer</span>
+                <span class="mod-own">port trùng Printer</span>
+                <span class="mod-state">OK</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <p class="graph-read" id="graphRead">Mọi module đang OK. Bấm một module để inject fault.</p>
+
+        <div class="graph-side">
+          <p class="side-title">Nằm ngoài cascade</p>
+          <ul>
+            <li><b>Staff login</b> — POS Manager ▸ Staff Management. Terminal OK, mọi người khác OK, mà một nhân viên vẫn không vào được (role / assignment riêng).</li>
+            <li><b>Database</b> — <code>POSSoftware.dbHost</code>, POS Manager ▸ Connections. Check độc lập, không nằm trên chain Terminal/Printer.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="apps">
+        <p class="side-title">App trên virtual desktop → module đứng sau</p>
+        <table>
+          <thead><tr><th>App</th><th>Tên hiển thị</th><th>Module</th><th>Ghi chú</th></tr></thead>
+          <tbody id="appRows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ 6. DATA ============ -->
+    <section id="data">
+      <h2><span class="num">06</span>ScriptableObject tĩnh → runtime state</h2>
+      <p class="note">
+        Trái là asset đọc-only. Phải là state ghép ra lúc runtime bởi ProblemGenerator.
+        Không bao giờ ghi state runtime ngược vào SO.
+      </p>
+
+      <div class="data-cols">
+        <div class="data-col">
+          <p class="side-title">SO tĩnh — 7 asset</p>
+          <ul class="so-list" id="soList"></ul>
+        </div>
+        <div class="data-arrow" aria-hidden="true">
+          <span>ProblemGenerator<br>.Assemble()</span>
+        </div>
+        <div class="data-col">
+          <p class="side-title">Runtime — ProblemInstance</p>
+          <pre class="tree"><code id="tree"></code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 7. ISSUES ============ -->
+    <section id="issues">
+      <h2><span class="num">07</span>Bộ issue mẫu P1–P7</h2>
+      <p class="note">Cùng triệu chứng bề mặt gần giống nhau, khác fault / clue / resolution — đó là chỗ dạy chẩn đoán phân biệt.</p>
+      <div class="issue-grid" id="issueGrid"></div>
+      <p class="axiom">
+        P6/P7 <b>không</b> che P1–P5 (Terminal không nằm trên đường phụ thuộc của Printer),
+        nhưng ngược lại P4 (Network chết) vẫn che P6/P7 theo đúng chain.
+      </p>
+    </section>
+
+    <!-- ============ 8. GAP ============ -->
+    <section id="gap">
+      <h2><span class="num">08</span>Milestone &amp; khoảng lệch doc ↔ code</h2>
+
+      <div class="ms" id="milestones"></div>
+
+      <p class="side-title" style="margin-top:2.5rem">Ba việc doc mới đòi mà code chưa có</p>
+      <div class="gaps" id="gaps"></div>
+    </section>
+
+    <footer class="foot">
+      <p>Dựng từ <code>Docs/POS_TechSupport_GameDesign.md</code>, <code>manager.md</code>, <code>app.md</code>, <code>schema.md</code> — đối chiếu <code>Assets/Scripts/</code>.</p>
+    </footer>
+
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

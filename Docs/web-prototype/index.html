@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POS Tech Support — Prototype</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ============ CAMPAIGN HUB ============ -->
+  <section id="screen-hub" class="screen">
+    <div class="window wide">
+      <div class="titlebar"><span>Campaign Hub — Probation Tracker</span></div>
+      <div class="window-body">
+        <div class="hub-stats">
+          <div class="stat-box">
+            <div class="stat-label">Day</div>
+            <div class="stat-value"><span id="hub-day">1</span> / <span id="hub-totaldays">60</span></div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Tickets resolved</div>
+            <div class="stat-value"><span id="hub-tickets">0</span> / <span id="hub-mintickets">150</span></div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Warnings</div>
+            <div class="stat-value"><span id="hub-warnings">0</span> / <span id="hub-maxwarnings">3</span></div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Paycheck</div>
+            <div class="stat-value">$<span id="hub-currency">0</span></div>
+          </div>
+        </div>
+
+        <p class="hub-flavor">You're on a 60-day probation as overnight tech support for Sunrise Diner's POS system.
+        Resolve tickets, verify every caller, don't make things worse.</p>
+
+        <div class="hub-actions">
+          <button id="btn-start-night" class="btn btn-primary">Start Night ▶</button>
+          <button id="btn-reset-save" class="btn">Reset Campaign</button>
+        </div>
+
+        <details class="dev-panel">
+          <summary>Dev settings (tunable, mirrors GameConfigSO)</summary>
+          <div class="dev-grid">
+            <label>Shift length (sec, real time)
+              <input type="number" id="cfg-shift-sec" min="20" step="5" value="150">
+            </label>
+            <label>Total days
+              <input type="number" id="cfg-total-days" min="1" step="1" value="60">
+            </label>
+            <label>Min total tickets (win quota)
+              <input type="number" id="cfg-min-tickets" min="1" step="1" value="150">
+            </label>
+            <label>Strikes per night = fail
+              <input type="number" id="cfg-strikes" min="1" step="1" value="3">
+            </label>
+            <label>Warnings = game over
+              <input type="number" id="cfg-warnings" min="1" step="1" value="3">
+            </label>
+            <label>Ring timeout (sec)
+              <input type="number" id="cfg-ring-timeout" min="3" step="1" value="12">
+            </label>
+            <button id="btn-apply-cfg" class="btn">Apply</button>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ NIGHT SHIFT ============ -->
+  <section id="screen-night" class="screen hidden">
+    <div class="window wide">
+      <div class="titlebar"><span>Night Shift — Day <span id="night-day">1</span></span></div>
+      <div class="window-body">
+        <div class="night-topbar">
+          <div class="clock-box">🕗 <span id="night-clock">8:00 PM</span></div>
+          <div class="clock-box">Calls tonight: <span id="night-count">0</span></div>
+          <div class="clock-box">Waiting in queue: <span id="night-waiting">0</span></div>
+          <div class="clock-box warn">Strikes: <span id="night-strikes">0</span> / <span id="night-strikes-max">3</span></div>
+        </div>
+        <div class="progressbar-outer"><div id="night-progress" class="progressbar-inner"></div></div>
+
+        <div id="call-log" class="call-log"></div>
+        <p class="hint" id="night-hint">Waiting for the phone to ring…</p>
+
+        <details class="dev-panel">
+          <summary>Dev: jump straight into a test call</summary>
+          <div class="dev-test-row">
+            <select id="dev-issue-picker">
+              <option value="random">Random (per tonight's pool)</option>
+              <option value="P1">P1 — Out of paper</option>
+              <option value="P2">P2 — Printer driver error</option>
+              <option value="P3">P3 — Cash drawer port conflict</option>
+              <option value="P4">P4 — Network down (blocker only)</option>
+              <option value="P5">P5 — POS receipt template broken</option>
+              <option value="P6">P6 — Terminal joined wrong Wi-Fi</option>
+              <option value="P7">P7 — Terminal not registered with POS (IP)</option>
+              <option value="P4,P1">P4 + P1 (blocker chain)</option>
+              <option value="P4,P2">P4 + P2 (blocker chain)</option>
+              <option value="P4,P3">P4 + P3 (blocker chain)</option>
+              <option value="P4,P5">P4 + P5 (blocker chain)</option>
+              <option value="P4,P6">P4 + P6 (blocker chain)</option>
+            </select>
+            <button id="btn-dev-force-call" class="btn">Force this call now</button>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INCOMING CALL POPUP ============ -->
+  <div id="incoming-call-overlay" class="modal-overlay hidden">
+    <div class="window incoming-call-window">
+      <div class="titlebar"><span>☎ Incoming Call</span></div>
+      <div class="window-body incoming-call-body">
+        <div class="ringing-icon">☎</div>
+        <div class="incoming-caller">Sunrise Diner</div>
+        <div class="incoming-sub">Ringing…</div>
+        <div class="ring-timeout-outer"><div id="ring-timeout-bar" class="ring-timeout-inner"></div></div>
+        <div class="incoming-buttons">
+          <button id="btn-answer-call" class="btn btn-primary btn-answer">Answer</button>
+          <button id="btn-decline-call" class="btn btn-decline">Decline</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TICKET WINDOW (overlay, "on a call") ============ -->
+  <div id="ticket-modal" class="modal-overlay hidden">
+    <div class="window ticket-window">
+      <div class="titlebar">
+        <span>☎ On call with <span id="tk-store"></span> — Ticket <span id="tk-id"></span></span>
+        <span class="call-timer" id="tk-call-timer">00:00</span>
+      </div>
+      <div class="window-body ticket-body">
+
+        <div class="tk-col tk-left">
+          <div class="panel">
+            <div class="panel-title">Customer Chat</div>
+            <div class="chat-log" id="chat-log"></div>
+            <div class="chat-buttons">
+              <button class="btn small" id="btn-ask-symptom">Ask what's wrong</button>
+              <button class="btn small" id="btn-ask-storename">Ask store name</button>
+              <button class="btn small" id="btn-ask-ownername">Ask owner name</button>
+              <button class="btn small" id="btn-ask-machine">Ask for machine ID</button>
+              <button class="btn small" id="btn-ask-authorized">Ask if owner authorized this</button>
+              <button class="btn small" id="btn-sms-receipt">Request receipt (SMS)</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tk-col tk-mid">
+          <div class="panel">
+            <div class="panel-title">CRM — Account Lookup</div>
+            <div id="crm-panel-body"></div>
+          </div>
+        </div>
+
+        <div class="tk-col tk-right">
+          <div class="panel">
+            <div class="panel-title">Remote Desktop Software</div>
+            <div id="remote-connect-form"></div>
+          </div>
+        </div>
+
+      </div>
+      <div class="window-footer">
+        <span id="tk-status-line">Status: In Progress</span>
+        <button id="btn-end-call" class="btn btn-decline">Hang Up / End Call</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ BIG REMOTE DESKTOP VIEWER (the customer's actual screen) ============ -->
+  <div id="remote-screen-overlay" class="modal-overlay hidden">
+    <div class="window remote-screen-window">
+      <div class="titlebar">
+        <span>🖥 Remote Desktop Software — Connected</span>
+        <button id="remote-screen-close" class="titlebar-btn">X</button>
+      </div>
+      <div class="window-body" id="remote-screen-body"></div>
+    </div>
+  </div>
+
+  <!-- ============ GENERIC APP WINDOW (CRM / Remote Software login / desktop apps) ============ -->
+  <div id="app-window-overlay" class="modal-overlay hidden">
+    <div class="window app-window">
+      <div class="titlebar">
+        <span id="app-window-title"></span>
+        <button id="app-window-close" class="titlebar-btn">X</button>
+      </div>
+      <div class="window-body" id="app-window-body"></div>
+    </div>
+  </div>
+
+  <!-- ============ END OF NIGHT ============ -->
+  <section id="screen-endofnight" class="screen hidden">
+    <div class="window">
+      <div class="titlebar"><span>End of Night — Day <span id="eon-day">1</span> Summary</span></div>
+      <div class="window-body">
+        <ul id="eon-summary" class="summary-list"></ul>
+        <div id="eon-verdict" class="eon-verdict"></div>
+        <button id="btn-continue" class="btn btn-primary">Continue to next day ▶</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GAME OVER ============ -->
+  <section id="screen-gameover" class="screen hidden">
+    <div class="window">
+      <div class="titlebar"><span>Terminated</span></div>
+      <div class="window-body">
+        <p id="gameover-text">You've accumulated too many warnings and been let go.</p>
+        <button id="btn-restart" class="btn btn-primary">Start New Campaign</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WIN ============ -->
+  <section id="screen-win" class="screen hidden">
+    <div class="window">
+      <div class="titlebar"><span>Hired!</span></div>
+      <div class="window-body">
+        <p id="win-text">You completed your 60-day probation and hit quota. Welcome aboard, full-time.</p>
+        <button id="btn-restart-win" class="btn btn-primary">Start New Campaign</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

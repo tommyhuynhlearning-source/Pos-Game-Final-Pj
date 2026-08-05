@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 589ab89aec63b4ad8ae99c02af27b438, type: 3}
+  m_Name: Action_move_cash_drawer_port
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.DesktopActionSO
+  actionId: move_cash_drawer_port
+  actionType: 0
+  kind: 1
+  targetModule: 4
+  appKey: cashdrawer
+  appTab: port
+  preconditions:
+  - module: 4
+    field: port
+    op: 0
+    expectedValue: COM3
+  stateChanges:
+  - module: 4
+    stateField: port
+    faultValue: COM4
+  resultText: Cash drawer moved to COM4.
+  isRisky: 0
+  isTest: 0
+  testReceiptType: 0

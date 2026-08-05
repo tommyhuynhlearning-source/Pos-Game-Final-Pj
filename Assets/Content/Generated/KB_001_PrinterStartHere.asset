@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_001_PrinterStartHere
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-001
+  title: "Receipt printer won't print \u2014 start here"
+  category: 2
+  content: "If the printer looks completely dead, check the print queue FIRST \u2014
+    Diagnostic \u25B8 Check print queue. 'Out of paper' means exactly that: refill
+    the tray, then confirm with a test page. Don't jump straight to reinstalling
+    drivers or swapping ports until the queue message rules that out."
+  relatedErrorCodes: []

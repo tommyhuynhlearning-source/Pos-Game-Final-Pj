@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a7d89d9a1d214a57a83caeb4fb7dc0e, type: 3}
+  m_Name: ContentDatabase
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.ContentDatabaseSO
+  config: {fileID: 11400000, guid: b2806257283ac4beea61ba9d11323ad3, type: 2}
+  realStore: {fileID: 11400000, guid: 2a2934be1225d492f9dc0b9cc9286559, type: 2}
+  crmDecoys:
+  - {fileID: 11400000, guid: 6116ebe2cdb41459f86e46efa236530e, type: 2}
+  - {fileID: 11400000, guid: f925cc78bde2d4b84b3e764157c95d02, type: 2}
+  personaPool:
+  - {fileID: 11400000, guid: a12ce05de043a4c728033ee0567e89f5, type: 2}
+  staffCallerNames:
+  - Jenny Park
+  - Carlos Ibarra
+  - Deshawn Miller
+  allIssues:
+  - {fileID: 11400000, guid: 8fb298e843c1144029a1ac6b8dafd119, type: 2}
+  - {fileID: 11400000, guid: b95c2ea10959448ea8f626ab4b6ec205, type: 2}
+  - {fileID: 11400000, guid: 12ada98fabcdc44f6aa47fe103c9e16a, type: 2}
+  - {fileID: 11400000, guid: 16f409cab2846427da1d10d87312c8ee, type: 2}
+  - {fileID: 11400000, guid: 3b1d4f3f19b2d4d34b08896eea065fdd, type: 2}
+  - {fileID: 11400000, guid: 540699480bea4433a9ff831feed2f626, type: 2}
+  - {fileID: 11400000, guid: e0da66f299d9640a298b16905f2d0692, type: 2}
+  allActions:
+  - {fileID: 11400000, guid: cecc6e837a3ab46b1a75ab12e44d36be, type: 2}
+  - {fileID: 11400000, guid: 6420aed5c84a046929c0bccc4c3c6b2a, type: 2}
+  - {fileID: 11400000, guid: 7534975ac9fe14ccb871166a3724e6e5, type: 2}
+  - {fileID: 11400000, guid: 453da3bcb93d441638b983ceb8afa558, type: 2}
+  - {fileID: 11400000, guid: 8c8ad25521714493aa2445299d09faa5, type: 2}
+  - {fileID: 11400000, guid: d50c47120ec5d457db709a266ebaf8b8, type: 2}
+  - {fileID: 11400000, guid: d39868c3679de4f7aa570b23dcd4aa50, type: 2}
+  - {fileID: 11400000, guid: edcb5ae3dae6346dd94eb691be6bfabe, type: 2}
+  - {fileID: 11400000, guid: 4346f217838c24ffeb25e41ee2b150d7, type: 2}
+  - {fileID: 11400000, guid: 506542476d7ef43ef93005a318f62598, type: 2}
+  - {fileID: 11400000, guid: a313defd67b8543efa7bf96b1640b17f, type: 2}
+  - {fileID: 11400000, guid: fc197af020a5d405992d0511b584cadf, type: 2}
+  - {fileID: 11400000, guid: 5c3688c154ad64873b6d7b5f34627e39, type: 2}
+  - {fileID: 11400000, guid: 83a4b80d874ad455193ae1fba7f587a1, type: 2}
+  receiptTemplates:
+  - {fileID: 11400000, guid: 972f5c7d10bb84957ba2125e2f811af3, type: 2}
+  - {fileID: 11400000, guid: 026f29df3de7c4049a0962d24c1984e7, type: 2}
+  knowledgeArticles:
+  - {fileID: 11400000, guid: 6d6d09a9c50884555912716082d05ba5, type: 2}

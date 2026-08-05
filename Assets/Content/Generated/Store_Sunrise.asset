@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b60ebfd2886134694b777a0ccfd26a19, type: 3}
+  m_Name: Store_Sunrise
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.StoreProfileSO
+  storeId: ST-1042
+  storeName: Sunrise Diner
+  ownerName: Maria Alvarez
+  phoneNumber: 555-0142
+  address: 482 Elm St
+  remoteId: 482 913 706
+  fixedPasscode: 
+  isRealAccount: 1
+  machines:
+  - machineId: REG-1
+    osVersion: Win 10 IoT
+    posSoftwareVersion: POS Suite 4.2.1
+    hardware:
+      cpu: 
+      ram: 
+      notes: 
+    baseline:
+      networkIsOnline: true
+      networkSsid: SunriseDiner-Main
+      posReceiptTemplate: OK
+      posStaffRole: Admin
+      posStaffTerminal: REG-1
+      posTerminalSynced: true
+      posDbHost: db.sunrisediner.local
+      posRegisteredTerminalIp: 192.168.1.50
+      terminalWifiNetwork: SunriseDiner-Main
+      printerPaperLevel: OK
+      printerDriverState: OK
+      printerConnection: Connected
+      printerPort: COM3
+      cashDrawerPort: COM4

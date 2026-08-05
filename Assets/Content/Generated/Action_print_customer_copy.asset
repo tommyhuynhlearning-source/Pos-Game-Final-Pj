@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 589ab89aec63b4ad8ae99c02af27b438, type: 3}
+  m_Name: Action_print_customer_copy
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.DesktopActionSO
+  actionId: print_customer_copy
+  actionType: 3
+  kind: 0
+  targetModule: 3
+  appKey: possoftware
+  appTab: database
+  preconditions: []
+  stateChanges: []
+  resultText: Customer copy re-printed from the transaction record.
+  isRisky: 0
+  isTest: 1
+  testReceiptType: 2

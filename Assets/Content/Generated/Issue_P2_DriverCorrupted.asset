@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82cae357e88364836a5dd335497cd390, type: 3}
+  m_Name: Issue_P2_DriverCorrupted
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.IssueSO
+  issueId: P2
+  category: 2
+  tier: 1
+  isBlocker: 0
+  faults:
+  - module: 3
+    stateField: driverState
+    faultValue: Corrupted
+  symptoms:
+  - layman: "The printer is jammed or something \u2014 nothing comes out and there's
+      a red light."
+    technical: Printer.driverState = Corrupted (Device Manager Code 39).
+  clues:
+  - revealedBy: 4
+    clueText: 'Device Manager: ''This device cannot start (Code 39)''. Print queue
+      looks stuck.'
+    isRedHerring: 0
+  resolution:
+    symptomCleared:
+    - module: 3
+      field: driverState
+      op: 0
+      expectedValue: OK
+    - module: 3
+      field: connection
+      op: 1
+      expectedValue: Removed
+    rootCauseFixed:
+    - module: 3
+      field: driverState
+      op: 0
+      expectedValue: OK
+    - module: 3
+      field: connection
+      op: 1
+      expectedValue: Removed
+    requiresTestPass: 1
+    testReceiptType: 0
+  blockedByIssueIds: []
+  worseningFaults:
+  - module: 3
+    stateField: connection
+    faultValue: Removed

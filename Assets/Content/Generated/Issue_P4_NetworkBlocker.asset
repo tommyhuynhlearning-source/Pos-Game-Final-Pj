@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82cae357e88364836a5dd335497cd390, type: 3}
+  m_Name: Issue_P4_NetworkBlocker
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.IssueSO
+  issueId: P4
+  category: 4
+  tier: 2
+  isBlocker: 1
+  faults:
+  - module: 5
+    stateField: isOnline
+    faultValue: false
+  symptoms:
+  - layman: "Everything at the front feels dead \u2014 the internet thingy shows
+      no bars, and the printer's not working either."
+    technical: "Network.isOnline = false \u2014 gateway unreachable."
+  clues:
+  - revealedBy: 6
+    clueText: 'Ping to gateway: Request timed out. Network adapter shows Disconnected.'
+    isRedHerring: 0
+  resolution:
+    symptomCleared:
+    - module: 5
+      field: isOnline
+      op: 0
+      expectedValue: true
+    rootCauseFixed:
+    - module: 5
+      field: isOnline
+      op: 0
+      expectedValue: true
+    requiresTestPass: 0
+    testReceiptType: 0
+  blockedByIssueIds: []
+  worseningFaults: []
