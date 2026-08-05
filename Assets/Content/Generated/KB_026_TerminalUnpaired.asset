@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_026_TerminalUnpaired
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-026
+  title: Card machine has lost the till
+  category: 0
+  content: "Three different things can sit between a terminal and its POS, and they
+    fail separately: the network (KB-006), the address on file (KB-007), and the
+    pairing between the two devices. A terminal on the right Wi-Fi with the right
+    IP registered and still no connection is the third one.\nRe-pair the terminal
+    from POS Terminal \u25B8 Status. It issues a fresh token; nothing about the network
+    needs touching."
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P26

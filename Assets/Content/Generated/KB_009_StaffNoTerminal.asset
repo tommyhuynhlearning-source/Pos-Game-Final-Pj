@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_009_StaffNoTerminal
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-009
+  title: Login refused and the account has no terminal at all
+  category: 6
+  content: "A role on its own is not enough: POS also needs to know WHICH register
+    the account may sign in at. An account with a valid role and a blank terminal
+    assignment is refused everywhere, which reads to the customer exactly like a
+    broken till.\nCheck POS Manager \u25B8 Staff Mgmt: if the role line is fine and
+    the assignment line is empty, assign the register they are standing at and have
+    them retry. Don't touch the role \u2014 it isn't the fault, and raising it is
+    how you turn a clean ticket into an over-privilege one (KB-008)."
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P9

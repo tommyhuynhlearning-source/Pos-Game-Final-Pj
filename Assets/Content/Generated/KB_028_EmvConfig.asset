@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_028_EmvConfig
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-028
+  title: Chip is refused, swipe goes through
+  category: 0
+  content: "A terminal that fails ONE payment path and passes another is not disconnected
+    \u2014 it is misconfigured. Chip and swipe use different config; corrupt chip
+    config declines chip cards while swipe keeps working, which is why the customer
+    describes it as 'sometimes'.\nReload the chip reader configuration from the processor.
+    Anything network-shaped (KB-006, KB-037) would take out both paths, not one."
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P28

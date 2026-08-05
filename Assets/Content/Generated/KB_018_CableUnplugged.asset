@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_018_CableUnplugged
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-018
+  title: Windows can't see the printer at all
+  category: 2
+  content: "There is a difference between a device reporting an error and a device
+    not being there. An error means something to fix; an absence means nothing is
+    connected. Device Manager not listing the printer is an absence \u2014 there
+    is nothing there to reinstall a driver onto (KB-002 does not apply).\nThat is
+    a cable, and you cannot reach it from here. Have the customer unplug and firmly
+    reseat the data cable at both ends, then re-check. Some faults are only fixable
+    by the person in the room."
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P18

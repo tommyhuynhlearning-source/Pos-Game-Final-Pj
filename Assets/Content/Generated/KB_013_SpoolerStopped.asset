@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_013_SpoolerStopped
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-013
+  title: Jobs queue up and never print
+  category: 2
+  content: "Paper present, driver healthy, jobs stacking up at 'Spooling' \u2014
+    that combination is the Print Spooler service, not the printer. Windows accepts
+    the job and then has nothing running to hand it over.\nCheck System \u25B8 Services
+    for Print Spooler, restart it, and confirm with a test page. Work out this order
+    before reinstalling anything: a driver reinstall (KB-002) will not start a stopped
+    service, and you will have changed the machine for nothing."
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P13

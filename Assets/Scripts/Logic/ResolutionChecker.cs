@@ -41,7 +41,8 @@ namespace POSTechSupport.Logic
         {
             if (issue.worseningFaults == null) return false;
             foreach (var w in issue.worseningFaults)
-                if (desktop.GetModule(w.module)?.Get(w.stateField) == w.faultValue) return true;
+                if (desktop.GetModule(w.module)?.Get(w.stateField) == desktop.Identity.Resolve(w.faultValue))
+                    return true;
             return false;
         }
 

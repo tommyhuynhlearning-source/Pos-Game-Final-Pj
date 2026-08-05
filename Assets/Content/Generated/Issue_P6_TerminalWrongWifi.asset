@@ -43,5 +43,8 @@ MonoBehaviour:
       expectedValue: SunriseDiner-Main
     requiresTestPass: 0
     testReceiptType: 0
-  blockedByIssueIds: []
+  blockedByIssueIds:
+  - P14
+  - P15
+  - P4
   worseningFaults: []

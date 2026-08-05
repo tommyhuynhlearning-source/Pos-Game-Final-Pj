@@ -1,0 +1,154 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1cca3848dc4e247ebbc746c50e432ae9, type: 3}
+  m_Name: StoreNameTable
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.StoreNameTableSO
+  nameClusters:
+  - variants:
+    - Sunrise
+    - Sunset
+    - Sunnyside
+  - variants:
+    - Riverside
+    - Riverview
+    - Rivergate
+  - variants:
+    - Oakwood
+    - Oakdale
+    - Oakridge
+  - variants:
+    - Northgate
+    - Northfield
+    - Northbridge
+  - variants:
+    - Blue Door
+    - Blue Dove
+    - Bluebird
+  - variants:
+    - Maple Grove
+    - Maple Street
+  - variants:
+    - Cornerstone
+    - Corner House
+  - variants:
+    - Kingsway
+    - Kingsland
+    - Kings Cross
+  - variants:
+    - Old Mill
+    - Old Market
+  - variants:
+    - Harbour Light
+    - Harbour Point
+  - variants:
+    - Silver Birch
+    - Silver Beech
+  - variants:
+    - Greenway
+    - Greenfield
+    - Green Lane
+  - variants:
+    - Station Road
+    - Station Yard
+  - variants:
+    - White Horse
+    - White Hart
+  - variants:
+    - Elmwood
+    - Elmhurst
+  - variants:
+    - Fairview
+    - Fairfield
+  businessTypes:
+  - Diner
+  - Cafe
+  - Bakery
+  - Grill
+  - Deli
+  - Market
+  - Mini Mart
+  - Bistro
+  - Pizzeria
+  - Butchers
+  - Pharmacy
+  - Barbers
+  - Laundry
+  - Florist
+  - Bookshop
+  - Hardware
+  - Wine Store
+  - Creamery
+  - Noodle Bar
+  - Coffee House
+  ownerFirstNames:
+  - Maria
+  - Tom
+  - Priya
+  - Andre
+  - Nadia
+  - Lucas
+  - Ivy
+  - Hassan
+  - Elena
+  - Marcus
+  - Grace
+  - Diego
+  - Yuki
+  - Omar
+  - Fiona
+  - Peter
+  - Anita
+  - Colin
+  - Rosa
+  - Samir
+  - Helen
+  - Joel
+  - Mina
+  - Victor
+  ownerLastNames:
+  - Alvarez
+  - Reyes
+  - Nair
+  - Whitmore
+  - Okafor
+  - Delgado
+  - Brennan
+  - Karim
+  - Petrova
+  - Hollis
+  - Chan
+  - Moreau
+  - Sorensen
+  - Bianchi
+  - Nakamura
+  - Duarte
+  - Lindqvist
+  - Farrell
+  - Osei
+  - Vance
+  streetNames:
+  - Elm St
+  - Oak Ave
+  - Birch Rd
+  - Cedar Ln
+  - Market St
+  - Pine Way
+  - Hill Rd
+  - Quarry St
+  - Bell Ave
+  - Harbour Rd
+  - Willow Cl
+  - Station Rd
+  - Mill Ln
+  - Kingsway
+  - Fern Ct
+  - Granite St

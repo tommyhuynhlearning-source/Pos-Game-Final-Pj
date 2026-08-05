@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_010_AssignedToWrongRegister
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-010
+  title: "Account is assigned \u2014 just not to this register"
+  category: 6
+  content: "'Not assigned' and 'assigned somewhere else' look identical to the customer
+    and read very differently in Staff Mgmt. Compare the assignment against the register
+    ID the terminal reports about itself, not against what the caller says \u2014
+    customers mix up which till is which constantly.\nRe-assign to the register they
+    are actually standing at. Watch for red herrings while you're in there: a low
+    paper warning on the same screen has nothing to do with a login."
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P10

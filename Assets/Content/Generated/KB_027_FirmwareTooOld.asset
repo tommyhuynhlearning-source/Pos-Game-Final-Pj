@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_027_FirmwareTooOld
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-027
+  title: Terminal can't talk to the till after a POS update
+  category: 0
+  content: "When the trouble starts right after an update, suspect a version gap
+    before anything else. POS builds declare a minimum terminal firmware, and updating
+    one side without the other leaves them unable to negotiate.\nCompare the terminal's
+    firmware against the POS requirement and update the terminal. Re-pairing (KB-026)
+    will not help \u2014 pairing is not the thing failing."
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P27

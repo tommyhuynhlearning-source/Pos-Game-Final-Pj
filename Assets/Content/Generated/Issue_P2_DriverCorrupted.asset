@@ -50,7 +50,10 @@ MonoBehaviour:
       expectedValue: Removed
     requiresTestPass: 1
     testReceiptType: 0
-  blockedByIssueIds: []
+  blockedByIssueIds:
+  - P14
+  - P15
+  - P4
   worseningFaults:
   - module: 3
     stateField: connection

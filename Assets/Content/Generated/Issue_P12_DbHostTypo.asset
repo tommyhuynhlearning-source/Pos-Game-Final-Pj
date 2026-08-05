@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82cae357e88364836a5dd335497cd390, type: 3}
+  m_Name: Issue_P12_DbHostTypo
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.IssueSO
+  issueId: P12
+  category: 1
+  tier: 2
+  isBlocker: 0
+  faults:
+  - module: 1
+    stateField: dbHost
+    faultValue: db.sunrise-diner.local
+  symptoms:
+  - layman: A customer wants his receipt sent again and the system says it can't
+      find anything.
+    technical: "POSSoftware.dbHost misspelled \u2014 the record store is unreachable."
+  clues:
+  - revealedBy: 10
+    clueText: 'Connections: database host is "db.sunrise-diner.local" and won''t
+      resolve. Note the extra hyphen.'
+    isRedHerring: 0
+  - revealedBy: 2
+    clueText: "Test page prints fine \u2014 the printer itself is healthy."
+    isRedHerring: 0
+  resolution:
+    symptomCleared:
+    - module: 1
+      field: dbHost
+      op: 0
+      expectedValue: db.sunrisediner.local
+    rootCauseFixed:
+    - module: 1
+      field: dbHost
+      op: 0
+      expectedValue: db.sunrisediner.local
+    requiresTestPass: 0
+    testReceiptType: 0
+  blockedByIssueIds:
+  - P14
+  - P15
+  - P4
+  worseningFaults: []

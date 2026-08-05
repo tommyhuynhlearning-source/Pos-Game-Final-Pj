@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 589ab89aec63b4ad8ae99c02af27b438, type: 3}
+  m_Name: Action_resync_price_list
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.DesktopActionSO
+  actionId: resync_price_list
+  actionType: 0
+  kind: 1
+  targetModule: 1
+  appKey: possoftware
+  appTab: receipt
+  preconditions:
+  - module: 1
+    field: priceSync
+    op: 0
+    expectedValue: Stale
+  stateChanges:
+  - module: 1
+    stateField: priceSync
+    faultValue: Current
+  resultText: Price list re-synced from head office.
+  isRisky: 0
+  isTest: 0
+  testReceiptType: 0

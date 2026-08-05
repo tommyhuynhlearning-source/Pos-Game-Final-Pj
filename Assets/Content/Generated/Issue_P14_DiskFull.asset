@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82cae357e88364836a5dd335497cd390, type: 3}
+  m_Name: Issue_P14_DiskFull
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.IssueSO
+  issueId: P14
+  category: 3
+  tier: 2
+  isBlocker: 1
+  faults:
+  - module: 0
+    stateField: diskSpace
+    faultValue: Full
+  symptoms:
+  - layman: The whole computer's gone stupid. Everything's frozen, nothing opens.
+    technical: "OS.diskSpace = Full \u2014 the machine cannot write anything."
+  clues:
+  - revealedBy: 11
+    clueText: 'System drive: 0 GB free. Windows cannot write temp files, so nothing
+      else can start properly.'
+    isRedHerring: 0
+  resolution:
+    symptomCleared:
+    - module: 0
+      field: diskSpace
+      op: 0
+      expectedValue: OK
+    rootCauseFixed:
+    - module: 0
+      field: diskSpace
+      op: 0
+      expectedValue: OK
+    requiresTestPass: 0
+    testReceiptType: 0
+  blockedByIssueIds: []
+  worseningFaults: []

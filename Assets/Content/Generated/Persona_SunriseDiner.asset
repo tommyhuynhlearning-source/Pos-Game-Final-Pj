@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Persona_SunriseDiner
   m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.PersonaProfileSO
   personaId: sunrise-diner-default
-  displayName: Sunrise Diner caller
+  displayName: Night-shift caller
   techLiteracy: 0.3
   cooperativeness: 0.6
   memoryAccuracy: 0.5

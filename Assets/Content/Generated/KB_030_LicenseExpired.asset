@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_030_LicenseExpired
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-030
+  title: The POS won't open at all
+  category: 1
+  content: 'An application that flashes up and closes is refusing to start, not crashing
+    at random. Check the licence before anything else: an expired one produces exactly
+    this, and nothing downstream of the POS can be assessed while it will not run.
+
+    Reactivate
+    against the vendor, then re-read the rest of the machine. If the POS was down
+    all evening, nothing else has been genuinely tested yet.'
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P30

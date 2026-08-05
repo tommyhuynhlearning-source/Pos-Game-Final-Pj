@@ -105,3 +105,11 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+
+# macOS metadata. The project lives on an exFAT external drive, so macOS writes
+# an AppleDouble "._" sidecar next to every file.
+._*
+.DS_Store
+
+# Claude Code local settings
+.claude/

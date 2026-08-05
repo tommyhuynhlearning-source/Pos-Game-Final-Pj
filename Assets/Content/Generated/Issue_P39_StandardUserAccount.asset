@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82cae357e88364836a5dd335497cd390, type: 3}
+  m_Name: Issue_P39_StandardUserAccount
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.IssueSO
+  issueId: P39
+  category: 3
+  tier: 1
+  isBlocker: 0
+  faults:
+  - module: 0
+    stateField: userAccount
+    faultValue: Standard
+  symptoms:
+  - layman: Someone logged the computer in under a different account and now the
+      till won't run.
+    technical: "OS.userAccount = Standard \u2014 Windows-level rights, not a POS
+      role."
+  clues:
+  - revealedBy: 11
+    clueText: Windows is signed in as a Standard user. The POS needs administrator
+      rights to start at all.
+    isRedHerring: 0
+  - revealedBy: 9
+    clueText: "The POS staff account itself is fine \u2014 role assigned, terminal
+      assigned, synced."
+    isRedHerring: 0
+  resolution:
+    symptomCleared:
+    - module: 0
+      field: userAccount
+      op: 0
+      expectedValue: Admin
+    rootCauseFixed:
+    - module: 0
+      field: userAccount
+      op: 0
+      expectedValue: Admin
+    requiresTestPass: 0
+    testReceiptType: 0
+  blockedByIssueIds:
+  - P14
+  - P15
+  - P4
+  worseningFaults: []

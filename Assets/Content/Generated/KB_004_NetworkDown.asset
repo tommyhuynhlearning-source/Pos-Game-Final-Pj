@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_004_NetworkDown
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-004
+  title: Everything at the front is dead
+  category: 4
+  content: "When the customer says nothing works at all, check the network before
+    anything else \u2014 Network Settings \u25B8 Check network status. A failed gateway
+    ping takes down POS, and the terminal and printer with it.\nWhile the network
+    is down, downstream apps report Blocked rather than Error: that is the system
+    saying it cannot even see those modules yet, so there is nothing to diagnose
+    there. Reconnect the network FIRST, then re-read the other apps \u2014 a second,
+    real fault is often waiting underneath."
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P4

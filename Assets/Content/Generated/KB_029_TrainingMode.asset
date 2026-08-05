@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_029_TrainingMode
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-029
+  title: Everything approves but no money arrives
+  category: 0
+  content: "Approvals that all succeed while nothing reaches the bank is the signature
+    of training mode. The terminal simulates the whole exchange, prints a receipt,
+    and sends nothing \u2014 it is designed to be convincing, which is exactly why
+    it costs a shop a night's takings.\nCheck the terminal's mode first whenever
+    the complaint is about money rather than about errors. A failed settlement (KB-032)
+    looks similar in the bank account and completely different on screen."
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P29

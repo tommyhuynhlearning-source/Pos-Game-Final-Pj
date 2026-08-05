@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_014_DiskFull
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-014
+  title: The whole machine is unusable
+  category: 3
+  content: "When every app is frozen rather than one being broken, look at Windows
+    before any device. A full system drive stops the machine writing temp files,
+    and nothing that needs to start can start.\nSystem \u25B8 Health shows free space.
+    Clear it, then re-read every other app \u2014 while the disk was full they all
+    reported Blocked, which means they were never actually diagnosed. There is very
+    often a second, real fault waiting underneath."
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P14

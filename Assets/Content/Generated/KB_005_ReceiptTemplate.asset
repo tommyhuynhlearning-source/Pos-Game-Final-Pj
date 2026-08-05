@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_005_ReceiptTemplate
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-005
+  title: Test page prints fine but the customer's receipt is wrong
+  category: 1
+  content: "A test page exercises the printer and driver only \u2014 it carries no
+    transaction data. So 'test page OK but the customer copy is missing the total'
+    rules the printer OUT and points at the POS receipt template.\nCheck POS Manager
+    \u25B8 Receipt Config for a field dropped from the mapping, reset the template,
+    then confirm by printing a real customer copy from POS Manager \u25B8 Database
+    \u2014 not another test page. Not everything involving paper is a printer fault."
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P5

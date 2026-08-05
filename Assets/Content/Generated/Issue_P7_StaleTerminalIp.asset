@@ -43,5 +43,8 @@ MonoBehaviour:
       expectedValue: 192.168.1.50
     requiresTestPass: 0
     testReceiptType: 0
-  blockedByIssueIds: []
+  blockedByIssueIds:
+  - P14
+  - P15
+  - P4
   worseningFaults: []

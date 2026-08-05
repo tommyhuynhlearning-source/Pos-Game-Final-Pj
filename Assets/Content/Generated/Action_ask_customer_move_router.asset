@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 589ab89aec63b4ad8ae99c02af27b438, type: 3}
+  m_Name: Action_ask_customer_move_router
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.DesktopActionSO
+  actionId: ask_customer_move_router
+  actionType: 0
+  kind: 1
+  targetModule: 5
+  appKey: network
+  appTab: adapter
+  preconditions:
+  - module: 5
+    field: signalStrength
+    op: 1
+    expectedValue: Good
+  stateChanges:
+  - module: 5
+    stateField: signalStrength
+    faultValue: Good
+  resultText: "Had the customer move the access point clear of the metal shelving
+    \u2014 signal is solid now."
+  isRisky: 0
+  isTest: 0
+  testReceiptType: 0

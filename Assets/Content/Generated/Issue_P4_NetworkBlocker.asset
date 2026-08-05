@@ -41,5 +41,7 @@ MonoBehaviour:
       expectedValue: true
     requiresTestPass: 0
     testReceiptType: 0
-  blockedByIssueIds: []
+  blockedByIssueIds:
+  - P14
+  - P15
   worseningFaults: []

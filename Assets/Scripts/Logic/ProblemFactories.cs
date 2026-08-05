@@ -197,9 +197,13 @@ namespace POSTechSupport.Logic
 
         public DesktopFactory(ModuleBaseline baseline) { this.baseline = baseline; }
 
-        public VirtualDesktopInstance Create(IssueSO[] issues)
+        /// <param name="identity">
+        /// The calling shop. The baseline is shared by every store, so its store-named fields are
+        /// authored as tokens and resolved here — the desktop comes up on ITS OWN network.
+        /// </param>
+        public VirtualDesktopInstance Create(IssueSO[] issues, StoreIdentity identity = null)
         {
-            var d = VirtualDesktopInstance.BuildFresh();
+            var d = VirtualDesktopInstance.BuildFresh(identity);
             if (baseline != null) SeedBaseline(d, baseline);
             foreach (var issue in issues)
                 if (issue != null && issue.faults != null)
@@ -209,6 +213,7 @@ namespace POSTechSupport.Logic
 
         private static void SeedBaseline(VirtualDesktopInstance d, ModuleBaseline b)
         {
+            var id = d.Identity;
             var os = d.GetModule(ModuleType.OS);
             os.Set("diskSpace", b.osDiskSpace);
             os.Set("pendingReboot", b.osPendingReboot);
@@ -220,7 +225,7 @@ namespace POSTechSupport.Logic
 
             var net = d.GetModule(ModuleType.Network);
             net.Set("isOnline", b.networkIsOnline);
-            net.Set("ssid", b.networkSsid);
+            net.Set("ssid", id.Resolve(b.networkSsid));
             net.Set("signalStrength", b.networkSignalStrength);
             net.Set("dnsServer", b.networkDnsServer);
             net.Set("firewallBlocking", b.networkFirewallBlocking);
@@ -230,7 +235,7 @@ namespace POSTechSupport.Logic
             pos.Set("staffRole", b.posStaffRole);
             pos.Set("staffTerminal", b.posStaffTerminal);
             pos.Set("terminalSynced", b.posTerminalSynced);
-            pos.Set("dbHost", b.posDbHost);
+            pos.Set("dbHost", id.Resolve(b.posDbHost));
             pos.Set("registeredTerminalIp", b.posRegisteredTerminalIp);
             pos.Set("licenseState", b.posLicenseState);
             pos.Set("offlineMode", b.posOfflineMode);
@@ -241,7 +246,7 @@ namespace POSTechSupport.Logic
             pos.Set("minTerminalFirmware", b.posMinTerminalFirmware);
 
             var term = d.GetModule(ModuleType.Terminal);
-            term.Set("wifiNetwork", b.terminalWifiNetwork);
+            term.Set("wifiNetwork", id.Resolve(b.terminalWifiNetwork));
             term.Set("machineId", b.terminalMachineId);
             term.Set("pairingState", b.terminalPairingState);
             term.Set("firmwareVersion", b.terminalFirmwareVersion);
@@ -312,12 +317,16 @@ namespace POSTechSupport.Logic
             var machine = callerStore?.machines != null && callerStore.machines.Length > 0
                 ? callerStore.machines[0] : null;
 
+            // The site's Wi-Fi and record-store host are named after the shop, so they are derived here
+            // and every authored {SSID}/{DB_HOST} token in the corpus resolves against this store.
+            var identity = StoreIdentity.For(callerStore?.storeName);
+
             var p = new ProblemInstance
             {
                 issues = issues,
                 store = callerStore,
                 persona = personaFactory.Create(isRefundVoid, callerStore, machine, confusable),
-                desktop = desktopFactory.Create(issues),
+                desktop = desktopFactory.Create(issues, identity),
                 crmDirectory = directory.records,
             };
 

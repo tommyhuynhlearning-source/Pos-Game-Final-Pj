@@ -71,3 +71,7 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  useLlm: 0
+  llmEndpoint: http://localhost:11434/api/generate
+  llmModel: llama3.2:3b
+  llmTimeoutSec: 4

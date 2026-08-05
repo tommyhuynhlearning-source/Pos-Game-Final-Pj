@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_002_PrinterDriverCode39
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-002
+  title: Printer reports Code 39 / device cannot start
+  category: 2
+  content: "Device Manager \u25B8 'This device cannot start (Code 39)' is a DRIVER
+    fault, not a hardware one. Reinstall the printer driver, then confirm with a
+    test page.\nBefore you do: open Device Manager and read the actual status. If
+    the driver reports OK, the jam is somewhere else \u2014 a port conflict looks
+    almost identical from the customer's side (see KB-003). Avoid 'Remove & re-add
+    printer' as a first move: if the driver wasn't the cause you end up with a removed
+    device on top of the original fault, and the ticket closes Degraded."
+  relatedErrorCodes:
+  - 39
+  - Code 39
+  guidanceForIssueIds:
+  - P2

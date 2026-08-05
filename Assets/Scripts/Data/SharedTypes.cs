@@ -102,7 +102,9 @@ namespace POSTechSupport.Data
 
         // Network — isOnline is "down"; the rest are "up but degraded", which cascade differently
         public string networkIsOnline = "true";
-        public string networkSsid = "SunriseDiner-Main";
+        // Store-named fields carry TOKENS: one baseline serves every shop in the CRM, and
+        // DesktopFactory.SeedBaseline resolves them against the calling store (see StoreIdentity).
+        public string networkSsid = StoreIdentity.TokenSsid;
         public string networkSignalStrength = "Good";
         public string networkDnsServer = "192.168.1.1";
         public string networkFirewallBlocking = "false";
@@ -112,7 +114,7 @@ namespace POSTechSupport.Data
         public string posStaffRole = "Sale";      // floor staff; Admin means refund/void/settle rights
         public string posStaffTerminal = "REG-1";
         public string posTerminalSynced = "true";
-        public string posDbHost = "db.sunrisediner.local";
+        public string posDbHost = StoreIdentity.TokenDbHost;
         public string posRegisteredTerminalIp = "192.168.1.50";
         public string posLicenseState = "Valid";
         public string posOfflineMode = "false";
@@ -123,7 +125,7 @@ namespace POSTechSupport.Data
         public string posMinTerminalFirmware = "4.0";
 
         // Terminal (wifiNetwork is the only editable field; IP/gateway derive from it)
-        public string terminalWifiNetwork = "SunriseDiner-Main";
+        public string terminalWifiNetwork = StoreIdentity.TokenSsid;
         public string terminalMachineId = "REG-1";   // which register this is — staff assignments point at it
         public string terminalPairingState = "Paired";
         public string terminalFirmwareVersion = "4.2";

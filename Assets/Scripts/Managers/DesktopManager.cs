@@ -14,9 +14,10 @@ namespace POSTechSupport.Managers
     /// </summary>
     public class DesktopManager
     {
-        public VirtualDesktopInstance Build(ModuleBaseline baseline, IEnumerable<IssueSO> issues)
+        public VirtualDesktopInstance Build(ModuleBaseline baseline, IEnumerable<IssueSO> issues,
+                                            StoreIdentity identity = null)
         {
-            var d = VirtualDesktopInstance.BuildFresh();
+            var d = VirtualDesktopInstance.BuildFresh(identity);
             foreach (var issue in issues)
                 if (issue.faults != null)
                     foreach (var f in issue.faults) d.Apply(f);

@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_024_DrawerLocked
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-024
+  title: Drawer clicks but stays shut
+  category: 5
+  content: 'If you can hear the release fire, the electronics have done their job:
+    the signal arrived, the solenoid moved. Something mechanical is holding the drawer.
+    That rules out a port conflict (KB-003), which produces no click at all.
+
+    Ask
+    about the key lock on the front of the drawer. It gets turned during a cash count
+    and forgotten, and no amount of configuration will beat a physical lock.'
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P24

@@ -63,10 +63,11 @@ namespace POSTechSupport.Simulation
     {
         public override ModuleType Type => ModuleType.Network;
 
-        public NetworkModule()
+        public NetworkModule(StoreIdentity id = null)
         {
+            id ??= StoreIdentity.Generic;
             Set("isOnline", "true");
-            Set("ssid", WifiTable.StoreSsid);
+            Set("ssid", id.mainSsid);      // the shop's own network, named after the shop
             Set("signalStrength", "Good");
             Set("dnsServer", WifiTable.StoreDnsCorrect);
             Set("firewallBlocking", "false");
@@ -99,13 +100,14 @@ namespace POSTechSupport.Simulation
     {
         public override ModuleType Type => ModuleType.POSSoftware;
 
-        public POSSoftwareModule()
+        public POSSoftwareModule(StoreIdentity id = null)
         {
+            id ??= StoreIdentity.Generic;
             Set("receiptTemplate", "OK");
             Set("staffRole", "Sale");     // healthy default for a floor-staff account; Admin is over-privileged
             Set("staffTerminal", "REG-1");
             Set("terminalSynced", "true");
-            Set("dbHost", WifiTable.PosDbHostCorrect);
+            Set("dbHost", id.dbHost);
             Set("registeredTerminalIp", WifiTable.TerminalIpCorrect);
             Set("licenseState", "Valid");
             Set("offlineMode", "false");
@@ -151,9 +153,10 @@ namespace POSTechSupport.Simulation
     {
         public override ModuleType Type => ModuleType.Terminal;
 
-        public TerminalModule()
+        public TerminalModule(StoreIdentity id = null)
         {
-            Set("wifiNetwork", WifiTable.StoreSsid);
+            id ??= StoreIdentity.Generic;
+            Set("wifiNetwork", id.mainSsid);
             Set("machineId", "REG-1");   // not a fault surface itself; staff assignments are checked against it
             Set("pairingState", "Paired");
             Set("firmwareVersion", WifiTable.TerminalFirmwareCurrent);
@@ -174,7 +177,7 @@ namespace POSTechSupport.Simulation
                     $"connected to the wrong Wi-Fi (\"{wifi}\" instead of \"{storeSsid}\") — wrong network means a completely different IP range, see Terminal ▸ Network");
             }
 
-            string actualIp = WifiTable.Resolve(wifi).ip;
+            string actualIp = WifiTable.Resolve(d.Identity, wifi).ip;
             string registeredIp = pos.Get("registeredTerminalIp");
             if (actualIp != registeredIp)
             {

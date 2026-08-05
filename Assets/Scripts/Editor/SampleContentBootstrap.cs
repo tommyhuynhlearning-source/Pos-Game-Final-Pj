@@ -295,7 +295,7 @@ namespace POSTechSupport.EditorTools
                 Misname("network", "the internet thingy"),
             };
             p.laymanVocabulary = new[] { "the till", "the card machine", "the printer thingy", "the internet thingy", "won't ring anything up" };
-            return Save(p, "Persona_SunriseDiner");
+            return Save(p, "Persona_NightCaller");
         }
 
         // --- Stores ------------------------------------------------------------------------------
@@ -766,7 +766,11 @@ namespace POSTechSupport.EditorTools
         // --- Issues ------------------------------------------------------------------------------
         private static IssueSO[] CreateIssues()
         {
-            string mainSsid = "SunriseDiner-Main";
+            // Store-named values are TOKENS, resolved per ticket against the calling shop
+            // (StoreIdentity). Authoring a literal SSID here would name one shop in the CRM
+            // and make the fault unfixable for the other nineteen.
+            string mainSsid = StoreIdentity.TokenSsid;
+            string guestSsid = StoreIdentity.TokenSsidGuest;
 
             var p1 = Issue("P1", IssueCategory.Printer, DifficultyTier.Basic, false,
                 Fault(ModuleType.Printer, "paperLevel", "Empty"),
@@ -818,9 +822,9 @@ namespace POSTechSupport.EditorTools
                 null);
 
             var p6 = Issue("P6", IssueCategory.Terminal, DifficultyTier.Medium, false,
-                Fault(ModuleType.Terminal, "wifiNetwork", "SunriseDiner-Guest"),
+                Fault(ModuleType.Terminal, "wifiNetwork", guestSsid),
                 new[] { Sym("The register just sits there — it won't let me ring anything up, like it's not talking to the system at all.", "Terminal.wifiNetwork ≠ Network.ssid — joined the wrong SSID.") },
-                new[] { Clue(DesktopActionType.CheckTerminalNetwork, $"Terminal ▸ Network shows Wi-Fi \"SunriseDiner-Guest\" — Network Settings shows the store's actual Wi-Fi is \"{mainSsid}\".", false) },
+                new[] { Clue(DesktopActionType.CheckTerminalNetwork, $"Terminal ▸ Network shows Wi-Fi \"{guestSsid}\" — Network Settings shows the store's actual Wi-Fi is \"{mainSsid}\".", false) },
                 Resolution(false, ReceiptType.TestPage, Check(ModuleType.Terminal, "wifiNetwork", ComparisonOp.Equals, mainSsid)),
                 null);
 
@@ -873,14 +877,14 @@ namespace POSTechSupport.EditorTools
                 null);
 
             var p12 = Issue("P12", IssueCategory.POS, DifficultyTier.Hard, false,
-                Fault(ModuleType.POSSoftware, "dbHost", "db.sunrise-diner.local"),
+                Fault(ModuleType.POSSoftware, "dbHost", StoreIdentity.TokenDbHostTypo),
                 new[] { Sym("A customer wants his receipt sent again and the system says it can't find anything.", "POSSoftware.dbHost misspelled — the record store is unreachable.") },
                 new[]
                 {
-                    Clue(DesktopActionType.CheckPosConnections, "Connections: database host is \"db.sunrise-diner.local\" and won't resolve. Note the extra hyphen.", false),
+                    Clue(DesktopActionType.CheckPosConnections, $"Connections: database host is \"{StoreIdentity.TokenDbHostTypo}\" and won't resolve. Compare it character by character with {StoreIdentity.TokenDbHost}.", false),
                     Clue(DesktopActionType.PrintTestPage, "Test page prints fine — the printer itself is healthy.", false),
                 },
-                Resolution(false, ReceiptType.TestPage, Check(ModuleType.POSSoftware, "dbHost", ComparisonOp.Equals, "db.sunrisediner.local")),
+                Resolution(false, ReceiptType.TestPage, Check(ModuleType.POSSoftware, "dbHost", ComparisonOp.Equals, StoreIdentity.TokenDbHost)),
                 null);
 
             // --- Windows / OS group. Two kinds, deliberately different (Docs/app.md §7):

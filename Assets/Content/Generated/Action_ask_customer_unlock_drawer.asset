@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 589ab89aec63b4ad8ae99c02af27b438, type: 3}
+  m_Name: Action_ask_customer_unlock_drawer
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.DesktopActionSO
+  actionId: ask_customer_unlock_drawer
+  actionType: 0
+  kind: 1
+  targetModule: 4
+  appKey: cashdrawer
+  appTab: port
+  preconditions:
+  - module: 4
+    field: lockState
+    op: 0
+    expectedValue: Locked
+  stateChanges:
+  - module: 4
+    stateField: lockState
+    faultValue: Unlocked
+  resultText: Asked the customer to turn the drawer key to the unlocked position.
+  isRisky: 0
+  isTest: 0
+  testReceiptType: 0

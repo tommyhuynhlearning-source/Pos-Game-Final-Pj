@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_017_PaperJam
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-017
+  title: Grinding noise, paper hanging out
+  category: 2
+  content: "Paper present and a mechanical noise means a jam, not an empty roll (KB-001)
+    \u2014 those two sound completely different to the customer and the queue tells
+    them apart in one look.\nWalk them through opening the cutter and pulling the
+    caught receipt out FORWARD, in the direction of travel. Then a test page, because
+    a jam that was cleared badly re-jams on the next print."
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P17

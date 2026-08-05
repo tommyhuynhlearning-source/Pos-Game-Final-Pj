@@ -64,7 +64,7 @@ namespace POSTechSupport.Managers
                     any = true;
                 }
                 if (!any) Log(p, SessionLogKind.Result, Describe(action, "nothing unusual found."));
-                result.resultText = Describe(action, "Diagnostic complete.");
+                result.resultText = p.desktop.Identity.Resolve(Describe(action, "Diagnostic complete."));
             }
             else // Fix
             {
@@ -73,7 +73,7 @@ namespace POSTechSupport.Managers
                 Log(p, SessionLogKind.Result, Describe(action, "applied."));
                 desktop.OnFixApplied(p);
                 result.triggeredMadeWorse = ResolutionChecker.EvaluateTicket(p) == TicketStatus.Degraded;
-                result.resultText = Describe(action, "Fix applied.");
+                result.resultText = p.desktop.Identity.Resolve(Describe(action, "Fix applied."));
             }
             return result;
         }
@@ -119,7 +119,11 @@ namespace POSTechSupport.Managers
                 ? $"{action.actionId}: {fallback}"
                 : action.resultText;
 
+        /// <summary>
+        /// Chokepoint #3 for token substitution: every clue, test result and action line the player reads
+        /// passes through here, so authored text names THIS shop's network rather than a hardcoded one.
+        /// </summary>
         private static void Log(ProblemInstance p, SessionLogKind kind, string text) =>
-            p.ticket.sessionLog.Add(new SessionLogLine { kind = kind, text = text });
+            p.ticket.sessionLog.Add(new SessionLogLine { kind = kind, text = p.desktop.Identity.Resolve(text) });
     }
 }

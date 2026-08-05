@@ -20,3 +20,5 @@ MonoBehaviour:
     the tray, then confirm with a test page. Don't jump straight to reinstalling
     drivers or swapping ports until the queue message rules that out."
   relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P1

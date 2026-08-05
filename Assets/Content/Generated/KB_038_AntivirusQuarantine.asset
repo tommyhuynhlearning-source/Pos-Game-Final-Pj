@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_038_AntivirusQuarantine
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-038
+  title: The POS closes itself the moment it opens
+  category: 3
+  content: "Started right after a security warning is the whole clue. Antivirus quarantines
+    a file the POS needs at startup, so the application is not damaged \u2014 a piece
+    of it has been taken away from it, and it dies the moment it reaches for that
+    piece.\nRestore the quarantined file and add an exclusion, or it will be taken
+    again on the next scan. Reinstalling the POS also works and takes an hour you
+    do not have at 2am."
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P38

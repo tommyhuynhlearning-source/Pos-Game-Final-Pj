@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_016_ClockSkew
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-016
+  title: Every card is declined but the terminal looks fine
+  category: 0
+  content: "Card authorization runs over a secure connection, and secure connections
+    check the machine's clock. If Windows has drifted far enough, the processor rejects
+    the handshake and every card comes back declined \u2014 while Wi-Fi, IP and POS
+    registration all read perfectly correct.\nSo when the terminal is on the store's
+    own network (rules out KB-006) with its current IP registered (rules out KB-007)
+    and cards still fail, go to System \u25B8 Health and check the clock. Cash still
+    working while cards do not is the giveaway: the register is fine, the connection
+    to the processor is not."
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P16

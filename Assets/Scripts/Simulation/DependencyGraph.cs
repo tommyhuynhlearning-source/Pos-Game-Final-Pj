@@ -86,7 +86,7 @@ namespace POSTechSupport.Simulation
 
         /// <summary>The terminal's DHCP-derived IP/gateway, always from its current Wi-Fi choice.</summary>
         public WifiTable.NetInfo TerminalNetInfo() =>
-            WifiTable.Resolve(d.GetModule(ModuleType.Terminal).Get("wifiNetwork"));
+            WifiTable.Resolve(d.Identity, d.GetModule(ModuleType.Terminal).Get("wifiNetwork"));
 
         /// <summary>
         /// Per-staff login (GDD Mục 15) — a separate failure domain from the terminal's own connectivity.
@@ -122,7 +122,7 @@ namespace POSTechSupport.Simulation
             if (pos.status == Status.Blocked) return (false, pos.reason);
 
             string host = (d.GetModule(ModuleType.POSSoftware).Get("dbHost") ?? "").Trim().ToLowerInvariant();
-            if (host != WifiTable.PosDbHostCorrect.ToLowerInvariant())
+            if (host != d.Identity.dbHost.ToLowerInvariant())
                 return (false, $"Cannot resolve host \"{d.GetModule(ModuleType.POSSoftware).Get("dbHost")}\"");
 
             // Same failure text, different cause: the name is right but nothing can resolve it. That the
@@ -141,18 +141,22 @@ namespace POSTechSupport.Simulation
             return printerOk && d.GetModule(ModuleType.POSSoftware).Get("receiptTemplate") == "OK";
         }
 
-        /// <summary>Data-driven state comparison used by resolution checks and action preconditions.</summary>
+        /// <summary>
+        /// Data-driven state comparison used by resolution checks and action preconditions. Chokepoint #2
+        /// for token substitution: "fixed" for P6 is Equals {SSID}, which means THIS shop's own network.
+        /// </summary>
         public bool CheckState(StateCheck check)
         {
             string actual = d.GetModule(check.module)?.Get(check.field);
+            string expected = d.Identity.Resolve(check.expectedValue);
             switch (check.op)
             {
-                case ComparisonOp.Equals:    return actual == check.expectedValue;
-                case ComparisonOp.NotEquals: return actual != check.expectedValue;
+                case ComparisonOp.Equals:    return actual == expected;
+                case ComparisonOp.NotEquals: return actual != expected;
                 case ComparisonOp.GreaterThan:
                 case ComparisonOp.LessThan:
                     if (float.TryParse(actual, NumberStyles.Any, CultureInfo.InvariantCulture, out var a) &&
-                        float.TryParse(check.expectedValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var b))
+                        float.TryParse(expected, NumberStyles.Any, CultureInfo.InvariantCulture, out var b))
                         return check.op == ComparisonOp.GreaterThan ? a > b : a < b;
                     return false;
                 default: return false;

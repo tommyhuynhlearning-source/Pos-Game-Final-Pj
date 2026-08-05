@@ -316,7 +316,7 @@ namespace POSTechSupport.UI
             var article = Active != null ? Active.ticket.attachedArticle : null;
             if (guidancePanel != null) guidancePanel.SetActive(article != null);
             if (guidanceText != null && article != null)
-                guidanceText.text = $"<b>📄 {article.title}</b>\n{article.content}";
+                guidanceText.text = Active.desktop.Identity.Resolve($"<b>📄 {article.title}</b>\n{article.content}");
         }
 
         /// <summary>
@@ -646,7 +646,7 @@ namespace POSTechSupport.UI
                 $"Joined Wi-Fi: <b>{joined}</b>\nIP (from DHCP): {info.ip}\nGateway: {info.gateway}", 13, TextAnchor.UpperLeft);
 
             UIFactory.Label("wifihdr", appBody, "Join Wi-Fi network:", 13, TextAnchor.MiddleLeft);
-            foreach (var ssid in Simulation.WifiTable.NearbyNetworks)
+            foreach (var ssid in Simulation.WifiTable.NearbyNetworks(Active.desktop.Identity))
             {
                 string s = ssid;
                 var b = UIFactory.Button($"wifi_{ssid}", appBody, ssid + (s == joined ? "  ✓" : ""), UIFactory.Panel, 12);
@@ -784,14 +784,15 @@ namespace POSTechSupport.UI
                 $"<b>Database</b>\nHost: {pos.Get("dbHost")}\nStatus: " +
                 (db.ok ? "<color=#66bb66>connected</color>" : $"<color=#cc4444>{db.reason}</color>"), 13, TextAnchor.UpperLeft);
 
-            if (!db.ok && pos.Get("dbHost") != Simulation.WifiTable.PosDbHostCorrect)
+            string correctDbHost = Active.desktop.Identity.dbHost;
+            if (!db.ok && pos.Get("dbHost") != correctDbHost)
             {
                 var fix = UIFactory.Button("fixdbhost", appBody,
-                    $"Point DB host back to {Simulation.WifiTable.PosDbHostCorrect}", UIFactory.Panel, 12);
+                    $"Point DB host back to {correctDbHost}", UIFactory.Panel, 12);
                 UIFactory.MinHeight(fix.gameObject, 28);
                 fix.onClick.AddListener(() =>
                 {
-                    pos.Set("dbHost", Simulation.WifiTable.PosDbHostCorrect);
+                    pos.Set("dbHost", correctDbHost);
                     game.Desktop.OnFixApplied(Active);
                     Log("DB host corrected.");
                     RenderAppBody(); RenderTicketStatus();
@@ -928,7 +929,8 @@ namespace POSTechSupport.UI
             }
             foreach (var a in results)
                 UIFactory.Label($"kb_{a.articleId}", kbResults,
-                    $"<b>{a.articleId} — {a.title}</b>\n{a.content}", 13, TextAnchor.UpperLeft);
+                    Active.desktop.Identity.Resolve($"<b>{a.articleId} — {a.title}</b>\n{a.content}"),
+                    13, TextAnchor.UpperLeft);
         }
 
         // ---------------------------------------------------------------- mailbox

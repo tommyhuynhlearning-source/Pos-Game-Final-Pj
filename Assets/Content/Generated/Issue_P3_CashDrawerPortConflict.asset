@@ -41,5 +41,8 @@ MonoBehaviour:
       expectedValue: COM3
     requiresTestPass: 1
     testReceiptType: 0
-  blockedByIssueIds: []
+  blockedByIssueIds:
+  - P14
+  - P15
+  - P4
   worseningFaults: []

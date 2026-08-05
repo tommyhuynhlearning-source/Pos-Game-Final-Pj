@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_008_StaffCannotLogIn
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-008
+  title: A staff member can't log in (but everyone else can)
+  category: 6
+  content: "This is a PERMISSION problem, not a hardware one, and it has a tell:
+    the register keeps working for everybody else. Confirm that first \u2014 a terminal
+    on the right Wi-Fi still charging cards rules out KB-004 and KB-006 in one look.\nThen
+    walk POS Manager \u25B8 Staff Mgmt top to bottom in order: does the account have
+    a role, is it assigned to a terminal, is that THIS terminal, has the change synced.
+    The first line that reads wrong is your fault; the ones below it are noise until
+    you fix that one.\nA blank role blocks login, so ANY role clears the symptom
+    \u2014 that does not make any role correct. Admin carries refund, void and close-batch
+    rights; handing that to a new hire to save a minute is an over-privilege incident
+    and the ticket closes Degraded even though the login now works and the customer
+    is happy. Assign Sale unless they explicitly ask for a manager account."
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P8

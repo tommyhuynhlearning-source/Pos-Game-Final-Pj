@@ -29,17 +29,46 @@ MonoBehaviour:
       ram: 
       notes: 
     baseline:
+      osDiskSpace: OK
+      osPendingReboot: false
+      osSpoolerService: Running
+      osSystemTime: OK
+      osAntivirusQuarantine: false
+      osUserAccount: Admin
+      osPowerPlan: AlwaysOn
       networkIsOnline: true
       networkSsid: SunriseDiner-Main
+      networkSignalStrength: Good
+      networkDnsServer: 192.168.1.1
+      networkFirewallBlocking: false
       posReceiptTemplate: OK
-      posStaffRole: Admin
+      posStaffRole: Sale
       posStaffTerminal: REG-1
       posTerminalSynced: true
       posDbHost: db.sunrisediner.local
       posRegisteredTerminalIp: 192.168.1.50
+      posLicenseState: Valid
+      posOfflineMode: false
+      posBatchState: Open
+      posTaxRate: 8.25
+      posPriceSync: Current
+      posPrinterVisible: true
+      posMinTerminalFirmware: 4.0
       terminalWifiNetwork: SunriseDiner-Main
+      terminalMachineId: REG-1
+      terminalPairingState: Paired
+      terminalFirmwareVersion: 4.2
+      terminalEmvConfig: OK
+      terminalMode: Live
       printerPaperLevel: OK
       printerDriverState: OK
       printerConnection: Connected
       printerPort: COM3
+      printerCableConnected: true
+      printerPaperJam: None
+      printerQueuePaused: false
+      printerDefaultPrinter: ReceiptPrinter
+      printerPaperWidth: 80mm
       cashDrawerPort: COM4
+      cashDrawerLockState: Unlocked
+      cashDrawerTriggerMode: OnPrint

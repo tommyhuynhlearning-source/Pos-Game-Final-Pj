@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 589ab89aec63b4ad8ae99c02af27b438, type: 3}
+  m_Name: Action_restart_print_spooler
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.DesktopActionSO
+  actionId: restart_print_spooler
+  actionType: 0
+  kind: 1
+  targetModule: 0
+  appKey: system
+  appTab: services
+  preconditions:
+  - module: 0
+    field: spoolerService
+    op: 0
+    expectedValue: Stopped
+  stateChanges:
+  - module: 0
+    stateField: spoolerService
+    faultValue: Running
+  resultText: "Print Spooler service restarted \u2014 queued jobs should drain now."
+  isRisky: 0
+  isTest: 0
+  testReceiptType: 0

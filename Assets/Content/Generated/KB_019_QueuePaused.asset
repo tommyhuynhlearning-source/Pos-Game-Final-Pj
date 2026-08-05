@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_019_QueuePaused
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-019
+  title: Jobs are accepted but held
+  category: 2
+  content: "A paused queue and a stopped spooler (KB-013) look identical from the
+    counter and are one word apart on screen. Paused means the service is running
+    and has been told to hold; stopped means there is no service to hold anything.\nRead
+    the queue's own status line before acting. If it says Paused, resume it \u2014
+    restarting the spooler for a paused queue changes nothing and costs you a minute
+    you did not have."
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P19

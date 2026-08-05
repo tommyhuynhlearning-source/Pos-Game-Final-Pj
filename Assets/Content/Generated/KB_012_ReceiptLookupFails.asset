@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_012_ReceiptLookupFails
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-012
+  title: Can't look up or re-send an old receipt
+  category: 1
+  content: "Receipt history lives in the database, not on the printer and not in
+    the current batch. If reprints and lookups fail while printing itself is fine,
+    check POS Manager \u25B8 Connections for the database host.\nTypos in the host
+    name are the usual cause and they are easy to skim past \u2014 compare it character
+    by character against the correct address. A test page proves nothing here: it
+    needs no transaction data, so it will pass happily while the record store is
+    unreachable."
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P12

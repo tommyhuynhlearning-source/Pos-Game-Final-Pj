@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9f2e8e5b57bd4bd99f33dd56077c2d1, type: 3}
+  m_Name: KB_023_PaperWidth
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.KnowledgeArticleSO
+  articleId: KB-023
+  title: Receipts print half-width with the edge cut off
+  category: 2
+  content: "Missing FIELDS is a template problem (KB-005). Content that is present
+    but laid out too narrow and clipped is a paper width problem: the printer is
+    composing for a 58mm roll while an 80mm roll is loaded, or the reverse.\nCheck
+    the configured width against the roll actually in the machine and match them.
+    Resetting the receipt template will not help here \u2014 every field is already
+    in the mapping."
+  relatedErrorCodes: []
+  guidanceForIssueIds:
+  - P23
