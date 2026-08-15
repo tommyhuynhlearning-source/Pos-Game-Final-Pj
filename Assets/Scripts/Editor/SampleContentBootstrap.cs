@@ -25,21 +25,19 @@ namespace POSTechSupport.EditorTools
             var actions = CreateActions();
             var persona = CreatePersona();
             var store = CreateRealStore();
-            var decoys = CreateDecoys();
             var issues = CreateIssues();
 
             var db = ScriptableObject.CreateInstance<ContentDatabaseSO>();
             db.config = config;
             db.realStore = store;
-            db.crmDecoys = decoys;
             db.storeNames = CreateStoreNameTable();
-            db.crmClusterCount = 6;          // 0 = fall back to realStore + crmDecoys (one fixed customer)
+            db.crmClusterCount = 6;          // confusable name families rolled into the CRM directory
             db.personaPool = new[] { persona };
             db.allIssues = issues;
             db.allActions = actions;
             db.receiptTemplates = CreateReceiptTemplates();
             db.knowledgeArticles = CreateKnowledgeArticles();
-            Save(db, "ContentDatabase");
+            db = Save(db, "ContentDatabase");
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -59,6 +57,13 @@ namespace POSTechSupport.EditorTools
             c.minTotalTickets = 150;
             c.strikesPerNightFail = 3;
             c.warningsToGameOver = 3;
+            // Call volume as a rate, not a hard-coded count: 0.25/in-game-hour over an 8h shift = 2 calls
+            // on day 1, ramping to 5 by day 60. Retune on GameConfig.asset in the Inspector.
+            c.callsPerHour = 0.25f;
+            c.callsPerHourPerDay = 0.00625f;
+            c.minCallsPerNight = 1;
+            c.maxCallsPerNight = 120;        // 0 = no cap; this only catches a typo in the rate
+            c.queuePatienceSec = 15f;        // busy line: waiting callers get taken by another tech
             // Calls bunch up toward dawn (GDD §1). Approximates the prototype's pow(rand, 1.4) skew;
             // flatten it toward a straight line for an evenly-paced night.
             c.ticketTempoOverNight = new AnimationCurve(
@@ -312,9 +317,9 @@ namespace POSTechSupport.EditorTools
         }
 
         /// <summary>
-        /// The template account. It is no longer the only customer — StoreDirectoryFactory rolls the
-        /// directory — but it still supplies the healthy machine baseline every generated account shares,
-        /// and it is the single caller when crmClusterCount is 0.
+        /// The template account. It is not a customer at all any more — StoreDirectoryFactory rolls the
+        /// whole directory — but it still supplies the healthy machine baseline that every generated
+        /// account and the simulated desktop are both built from.
         /// </summary>
         private static StoreProfileSO CreateRealStore()
         {
@@ -325,26 +330,8 @@ namespace POSTechSupport.EditorTools
             s.phoneNumber = "555-0142";
             s.address = "482 Elm St";
             s.remoteId = "482 913 706";
-            s.isRealAccount = true;
             s.machines = new[] { new MachineConfig { machineId = "REG-1", osVersion = "Win 10 IoT", posSoftwareVersion = "POS Suite 4.2.1", hardware = new HardwareSpec(), baseline = new ModuleBaseline() } };
             return Save(s, "Store_Sunrise");
-        }
-
-        private static StoreProfileSO[] CreateDecoys()
-        {
-            var bakery = ScriptableObject.CreateInstance<StoreProfileSO>();
-            bakery.storeId = "ST-2071"; bakery.storeName = "Sunrise Bakery"; bakery.ownerName = "Tom Reyes";
-            bakery.address = "19 Oak Ave"; bakery.remoteId = "551 204 918"; bakery.fixedPasscode = "QX7K2";
-            bakery.machines = new[] { new MachineConfig { machineId = "REG-4", baseline = new ModuleBaseline() } };
-            Save(bakery, "Store_Decoy_Bakery");
-
-            var sunset = ScriptableObject.CreateInstance<StoreProfileSO>();
-            sunset.storeId = "ST-3390"; sunset.storeName = "Sunset Diner"; sunset.ownerName = "Priya Nair";
-            sunset.address = "77 Birch Rd"; sunset.remoteId = "390 447 216"; sunset.fixedPasscode = "M4RTZ";
-            sunset.machines = new[] { new MachineConfig { machineId = "REG-9", baseline = new ModuleBaseline() } };
-            Save(sunset, "Store_Decoy_Sunset");
-
-            return new[] { bakery, sunset };
         }
 
         // --- Receipt templates ----------------------------------------------------------------------
@@ -361,7 +348,7 @@ namespace POSTechSupport.EditorTools
             {
                 Field("Printer model", true), Field("Driver version", true), Field("Alignment pattern", true),
             };
-            Save(testPage, "Receipt_TestPage");
+            testPage = Save(testPage, "Receipt_TestPage");
 
             var customer = ScriptableObject.CreateInstance<ReceiptTemplateSO>();
             customer.type = ReceiptType.Customer;
@@ -371,7 +358,7 @@ namespace POSTechSupport.EditorTools
                 Field("Total", true),                 // the field P5's broken template drops
                 Field("Card last 4", true), Field("Thank-you line", false),
             };
-            Save(customer, "Receipt_Customer");
+            customer = Save(customer, "Receipt_Customer");
 
             return new[] { testPage, customer };
         }
@@ -1289,10 +1276,29 @@ namespace POSTechSupport.EditorTools
             if (!AssetDatabase.IsValidFolder(Dir)) AssetDatabase.CreateFolder("Assets/Content", "Generated");
         }
 
+        /// <summary>
+        /// Write an asset, REUSING the file already at that path if there is one. `CreateAsset` on an
+        /// existing path deletes and recreates it, which mints a new GUID and silently breaks every scene
+        /// reference to it — regenerating content would leave GameManager holding a missing
+        /// ContentDatabase. Copying into the existing object keeps the GUID, so "regeneration is
+        /// idempotent" is true of the project and not only of the asset contents.
+        /// </summary>
         private static T Save<T>(T asset, string name) where T : Object
         {
-            AssetDatabase.CreateAsset(asset, $"{Dir}/{name}.asset");
-            return asset;
+            string path = $"{Dir}/{name}.asset";
+            var existing = AssetDatabase.LoadAssetAtPath<T>(path);
+            if (existing == null)
+            {
+                AssetDatabase.CreateAsset(asset, path);
+                return asset;
+            }
+
+            EditorUtility.CopySerialized(asset, existing);
+            EditorUtility.SetDirty(existing);
+            // The freshly built instance is deliberately NOT destroyed: destroying it would null out any
+            // reference a caller still holds to it, which is a silent bug. Callers must use the RETURN
+            // value so that every cross-reference points at the persisted asset.
+            return existing;
         }
     }
 }

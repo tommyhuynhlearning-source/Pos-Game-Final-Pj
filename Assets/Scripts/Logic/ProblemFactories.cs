@@ -161,7 +161,15 @@ namespace POSTechSupport.Logic
                 role = role,
                 name = callerName,
                 statedStoreName = RandomPick(storeName, wrongStore, memAcc),
-                statedOwnerName = role == CallerRole.Owner ? RandomPick(ownerName, wrongOwner, memAcc) : callerName,
+                // The owner they name is always the ACCOUNT's owner — never the caller's own name, which
+                // is nonsense from a staff member ("Carlos told me to call", said by Carlos) and makes
+                // the owner-name compare unmatchable on exactly the refund/void tickets where
+                // authorization has to be establishable.
+                //
+                // And an OWNER never gets it wrong: they opened the call by saying their own name, so a
+                // different answer thirty seconds later is not a faded memory, it is two people. Only a
+                // staff member can misremember whose shop this is.
+                statedOwnerName = role == CallerRole.Owner ? ownerName : RandomPick(ownerName, wrongOwner, memAcc),
                 statedMachineId = RandomPick(machineId, WrongRegister(machineId), memAcc),
             };
         }

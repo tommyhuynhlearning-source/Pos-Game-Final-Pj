@@ -113,3 +113,6 @@ InitTestScene*.unity*
 
 # Claude Code local settings
 .claude/
+
+# POS ▸ Debug ▸ Capture Remote Desktop output
+/XPDesktop*.png

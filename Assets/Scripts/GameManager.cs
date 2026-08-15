@@ -22,6 +22,25 @@ namespace POSTechSupport
         [SerializeField] private ContentDatabaseSO content;
         public ContentDatabaseSO Content => content;
 
+        [Header("Call volume — override for THIS scene")]
+        [Tooltip("Off = dùng nguyên GameConfig asset (dùng chung cho mọi scene). On = scene này tự " +
+                 "quyết số call, GameConfig không bị sửa — GameManager làm việc trên một bản sao runtime.")]
+        [SerializeField] private bool overrideCallVolume;
+
+        [Tooltip("Số call mỗi GIỜ in-game. Ca đêm dài 8 giờ (20:00→04:00) nên 0.25 ≈ 2 call/đêm. " +
+                 "Bật override là bỏ luôn ramp theo ngày: mọi đêm giữ đúng nhịp này.")]
+        [Min(0f)][SerializeField] private float callsPerHour = 0.25f;
+
+        [Tooltip("Số call CẢ CA, chốt cứng. > 0 sẽ đè lên callsPerHour. Để 0 = tính từ callsPerHour.")]
+        [Min(0)][SerializeField] private int callsPerShift;
+
+        /// <summary>
+        /// The config every service actually runs on — the shared asset, or a runtime clone carrying
+        /// this scene's call-volume override. Never the asset when <see cref="overrideCallVolume"/> is on,
+        /// so tuning a scene can't dirty Assets/Content/Generated/GameConfig.asset.
+        /// </summary>
+        public GameConfigSO Config { get; private set; }
+
         // --- Services -----------------------------------------------------------------------------
         public CampaignManager Campaign { get; private set; }
         public ConsequenceManager Consequence { get; private set; }
@@ -58,9 +77,70 @@ namespace POSTechSupport
             LoadOrNew();
         }
 
+        /// <summary>
+        /// Always a runtime clone of the asset, never the asset itself. Cloning unconditionally (rather
+        /// than only when the override is on) buys two things: the shared GameConfig can never be dirtied
+        /// by a scene tweak, and <see cref="overrideCallVolume"/> becomes a live toggle — the services
+        /// below hold this one reference for the whole session, so there is nothing to hot-swap later.
+        /// </summary>
+        private GameConfigSO ResolveConfig()
+        {
+            var asset = content.config;
+            if (asset == null) return null;
+
+            var clone = Instantiate(asset);
+            clone.name = asset.name + " (scene)";
+            ApplyCallVolume(clone);
+            return clone;
+        }
+
+        /// <summary>
+        /// Folds the two Inspector knobs into the fields <see cref="GameConfigSO.CallsForNight"/> reads.
+        /// callsPerShift wins by pinning the min/max clamp to one number; otherwise the rate is used and
+        /// the day ramp is zeroed, so an explicitly authored rate stays what it says on every night.
+        /// With the override off, the asset's own four values are copied back, so unticking restores the
+        /// authored volume instead of leaving the last override stuck on the clone.
+        /// </summary>
+        private void ApplyCallVolume(GameConfigSO cfg)
+        {
+            var src = content != null ? content.config : null;
+            if (cfg == null || src == null) return;
+
+            if (!overrideCallVolume)
+            {
+                cfg.callsPerHour = src.callsPerHour;
+                cfg.callsPerHourPerDay = src.callsPerHourPerDay;
+                cfg.minCallsPerNight = src.minCallsPerNight;
+                cfg.maxCallsPerNight = src.maxCallsPerNight;
+                return;
+            }
+
+            if (callsPerShift > 0)
+            {
+                cfg.minCallsPerNight = callsPerShift;
+                cfg.maxCallsPerNight = callsPerShift;
+                return;
+            }
+
+            cfg.callsPerHour = callsPerHour;
+            cfg.callsPerHourPerDay = 0f;
+            cfg.minCallsPerNight = 0;
+            cfg.maxCallsPerNight = 0;          // 0 = no ceiling, the rate alone decides
+        }
+
+        /// <summary>
+        /// Lets the knobs be dragged during play: the clone is re-stamped immediately, and ShiftManager
+        /// re-reads it in BeginShift, so an edit lands on the next night that starts. The night already
+        /// running rolled its whole spawn schedule up front and is deliberately left alone.
+        /// </summary>
+        private void OnValidate()
+        {
+            if (Application.isPlaying) ApplyCallVolume(Config);
+        }
+
         private void BuildServices()
         {
-            var cfg = content.config;
+            var cfg = Config = ResolveConfig();
             Save = new SaveManager();
             Consequence = new ConsequenceManager();
             Campaign = new CampaignManager(cfg);

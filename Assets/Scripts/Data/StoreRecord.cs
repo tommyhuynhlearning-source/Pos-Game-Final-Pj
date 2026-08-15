@@ -19,10 +19,23 @@ namespace POSTechSupport.Data
         public string ownerName;
         public string phoneNumber;
         public string address;
-        public string remoteId;        // fixed device ID, like a TeamViewer/AnyDesk ID
-        public string fixedPasscode;   // what the record shows when it ISN'T tonight's caller
-        public bool isRealAccount;     // authored-asset flag only; see ProblemInstance.IsCallerRecord
+        /// <summary>
+        /// The site's fixed device ID, like a TeamViewer/AnyDesk ID. This is ALL the CRM knows about
+        /// remote access, on purpose: the session passcode is generated on the customer's screen and has
+        /// to be read out over the phone. A passcode stored per record would be a value the game prints
+        /// under "Remote credentials" and then refuses — indistinguishable from a bug, and unfair in a
+        /// way no amount of verifying can see through.
+        /// </summary>
+        public string remoteId;
         public MachineConfig[] machines;
+
+        /// <summary>
+        /// Which authored name family this account came from — generation bookkeeping, never shown to the
+        /// player. It is what lets StoreDirectory.PickConfusable prefer a genuine sibling ("Fairview
+        /// Bookshop") over an account that merely shares a trade word ("Station Road Bookshop").
+        /// Null on authored records, which have no family.
+        /// </summary>
+        public string familyKey;
 
         /// <summary>The register on file. Callers all report the baseline's register id — see StoreDirectoryFactory.</summary>
         public string MachineId => machines != null && machines.Length > 0 && machines[0] != null
@@ -36,8 +49,6 @@ namespace POSTechSupport.Data
             phoneNumber = so.phoneNumber,
             address = so.address,
             remoteId = so.remoteId,
-            fixedPasscode = so.fixedPasscode,
-            isRealAccount = so.isRealAccount,
             machines = so.machines,
         };
     }

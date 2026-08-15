@@ -12,6 +12,8 @@ namespace POSTechSupport.AI
         AskStoreName,
         AskOwnerName,
         AskMachineId,
+        AskDoubleCheck,    // "are you sure?" — makes them go and CHECK the last fact they stated
+        AskSessionCode,    // "read me the code on your screen" — the remote passcode, which only they can see
         AskAuthorized,     // "did the owner OK this?"
         AskWhenStarted,    // repro: when / how often
         AskWhatTried,      // "have you tried anything?"
@@ -54,6 +56,19 @@ namespace POSTechSupport.AI
 
             if (Any(t, "bye", "goodbye", "that's all", "have a good", "take care")) return PlayerIntent.Goodbye;
             if (Any(t, "hello", "hi ", "hey", "good evening", "thanks for calling", "support here")) return PlayerIntent.Greeting;
+
+            // Before the identity questions and before InstructCustomer: "are you sure about that?" is
+            // doubting the answer just given, not a fresh question and not an instruction to go look at
+            // hardware. It is the player's only route back from a caller who misremembers.
+            if (Any(t, "are you sure", "you sure", "sure about", "double check", "double-check",
+                       "check again", "look again", "certain", "positive about", "read it out"))
+                return PlayerIntent.AskDoubleCheck;
+
+            // Before InstructCustomer: "read me the code on your screen" is asking them to relay a number,
+            // not telling them to go and poke at the hardware.
+            if (Any(t, "read me the code", "read the code", "code on your screen", "code on screen",
+                       "session code", "what code", "the code it", "connection code", "read it out to me"))
+                return PlayerIntent.AskSessionCode;
 
             if (Any(t, "authoriz", "authoris", "owner ok", "owner approve", "permission to", "allowed to do"))
                 return PlayerIntent.AskAuthorized;

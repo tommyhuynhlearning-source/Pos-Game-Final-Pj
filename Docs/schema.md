@@ -132,6 +132,14 @@ public class GameConfigSO : ScriptableObject {
     public int strikesPerNightFail = 3;
     public int warningsToGameOver = 3;
     public AnimationCurve ticketTempoOverNight; // spawn dồn về khuya
+    // Số call/GIỜ TRONG GAME — DEV CHỈNH ĐƯỢC trong Inspector (GameConfig.asset), KHÔNG có UI in-game.
+    // Ca = 8 giờ in-game ⇒ 0.25 ≈ 2 call/đêm; ramp +0.00625/ngày ⇒ ngày 60 ≈ 5 call/đêm.
+    public float callsPerHour = 0.25f, callsPerHourPerDay = 0.00625f;
+    public int minCallsPerNight = 1, maxCallsPerNight = 120;  // chặn trên chỉ là rào chống gõ sai; 0 = không chặn
+    public float queuePatienceSec = 15f;                      // chờ quá lâu → rời queue (xem manager.md TicketManager)
+    public float ShiftHours { get; }                          // = shiftEndHour - shiftStartHour, wrap 24h
+    public float CallsPerHourOnDay(int day);                  // base + ramp
+    public int CallsForNight(int day);                        // rate × ShiftHours, clamp min/max
 }
 ```
 
@@ -161,7 +169,6 @@ public class ProblemInstance {
     public PersonaInstance persona;        // runtime instance — xem định nghĩa ngay dưới TicketState
     public VirtualDesktopInstance desktop;
     public List<ActiveFault> faults;       // Latent/Active/Resolved
-    public VerificationState verification;
     public TransactionState transactions;
     public TicketState ticket;
 }
@@ -172,10 +179,9 @@ public class ActiveFault {
     public List<string> blockedBy;         // cập nhật runtime (kể cả MadeWorse tạo blocker mới)
 }
 
-public class VerificationState {
-    public FieldStatus storeId, identity, machine; // Unknown/Claimed/Verified/Mismatch
-    public bool CanGrantRemote();
-}
+// VerificationState (storeId/identity/machine + CanGrantRemote) đã BỊ XOÁ. Hệ quả của việc verify chỉ
+// có 2 thứ và cả 2 đều nằm trên ticket: remoteConnect.connected (đúng tiệm) và authorization.confirmed
+// (đúng người). Một class cờ song song không ai đọc chỉ là thứ thứ hai phải giữ cho đồng bộ.
 
 public class TransactionState {
     public List<Transaction> history;      // KHÔNG mất khi close batch
@@ -237,7 +243,9 @@ public class TicketState {
     public CallerRole role;            // Owner/Staff — rolled riêng cho ticket này
     public string name;                // Owner → lấy thẳng StoreProfile.ownerName; Staff → tên khác hẳn
     public string statedStoreName;     // có thể sai theo profile.memoryAccuracy — player phải verify qua CRM
-    public string statedOwnerName;
+    public string statedOwnerName;     // LUÔN là tên chủ tiệm (kể cả khi Staff gọi), sai thì sai thành chủ
+                                       // của record near-miss — KHÔNG bao giờ là tên của chính người gọi
+
     public string statedMachineId;
 }
 
@@ -265,8 +273,12 @@ public class TicketState {
     public string passcode;                // one-time session code, sinh mới mỗi ticket
     public string queryId, queryPass;      // input hiện tại của player trong form
     public bool connected;
-    public bool connectFailed;
+    public RemoteConnectOutcome outcome;   // None/Connected/UnknownDevice/PasscodeRejected
 }
+// Chọn 1 record CRM sẽ TỰ ĐIỀN queryId/queryPass — bắt gõ tay 9 chữ số là test gõ phím, không phải
+// test xác minh, và một chữ số đảo chỗ cho ra đúng cái thông báo lỗi như khi chọn nhầm tiệm.
+// UnknownDevice = ID không có trong directory (gõ sai); PasscodeRejected = máy có thật nhưng không
+// phải phiên này (chọn nhầm record). Hai lỗi khác nhau thì phải nói khác nhau.
 ```
 
 ---
@@ -286,7 +298,6 @@ ProblemInstance
  │    └─ graph         : DependencyGraph                       ← logic cascade, xem app.md
  ├─ faults             : List<ActiveFault>
  │    └─ issue         : IssueSO
- ├─ verification       : VerificationState
  ├─ transactions       : TransactionState
  │    ├─ history       : List<Transaction>
  │    └─ batches       : List<Batch>

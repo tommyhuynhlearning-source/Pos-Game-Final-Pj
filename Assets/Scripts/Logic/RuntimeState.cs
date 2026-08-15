@@ -81,7 +81,14 @@ namespace POSTechSupport.Logic
         public string queryId = "";
         public string queryPass = "";
         public bool connected;
-        public bool connectFailed;
+        public RemoteConnectOutcome outcome = RemoteConnectOutcome.None;
+
+        /// <summary>
+        /// The code they typed was this session's, whatever else went wrong. Lets the failure say so —
+        /// a player who has just had the customer read the code out loud needs to be told the code is
+        /// not the problem, or they go round the same loop again.
+        /// </summary>
+        public bool passcodeMatched;
     }
 
     /// <summary>
@@ -95,15 +102,18 @@ namespace POSTechSupport.Logic
         public float patience = 1f;                   // drains with repeated/jargon questions
         public HashSet<string> answered = new();      // intents already answered at least once
         public bool saidGoodbye;
-    }
 
-    /// <summary>Two independent verification layers: right STORE (CRM) vs right PERSON (identity).</summary>
-    public class VerificationState
-    {
-        public bool storeVerified;
-        public bool identityVerified;
-        public bool machineVerified;
-        public bool CanGrantRemote() => storeVerified;   // remote just needs the right record's creds
+        /// <summary>
+        /// The last identity fact the caller stated — what "are you sure?" refers to. Doubting is a
+        /// reply to something, so it needs the thing that was said, not a question of its own.
+        /// </summary>
+        public FactType? lastFact;
+
+        /// <summary>The last thing they said was the remote session code — doubting that re-reads it.</summary>
+        public bool lastWasSessionCode;
+
+        /// <summary>Facts the caller has already gone and checked; a second doubt just repeats it.</summary>
+        public HashSet<FactType> reChecked = new();
     }
 
     /// <summary>A fault that's live in a ticket, with its resolution lifecycle + blocker tracking.</summary>
@@ -146,6 +156,7 @@ namespace POSTechSupport.Logic
 
         // scheduling bookkeeping (ShiftManager / TicketManager)
         public float ringDeadline;
+        public float queueDeadline;      // caller gives up waiting in the queue after this (see queuePatienceSec)
         public float answeredAtElapsed;
     }
 
@@ -160,7 +171,6 @@ namespace POSTechSupport.Logic
         public PersonaInstance persona;
         public VirtualDesktopInstance desktop;
         public List<ActiveFault> faults = new();
-        public VerificationState verification = new();
         public TransactionState transactions = new();
         public TicketState ticket = new();
 

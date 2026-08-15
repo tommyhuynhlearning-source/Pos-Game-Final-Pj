@@ -63,6 +63,11 @@ namespace POSTechSupport.AI
             var act = policy.Decide(truth, p.ticket.dialogue, PlayerIntent.AskSymptom);
             string opener = $"Hi, this is {truth.callerName} from {truth.statedStoreName}. {act.content}";
             Post(p, truth, opener, act);
+
+            // They just named the shop, so that is what an immediate "are you sure?" is about. No compare
+            // chip though — the player still has to ASK for a fact before they can hold it up against the
+            // CRM; the opener only makes doubting possible from the first second of the call.
+            p.ticket.dialogue.lastFact = FactType.StoreName;
         }
 
         // -------------------------------------------------------------------------------------------
@@ -77,6 +82,17 @@ namespace POSTechSupport.AI
             if (intent == PlayerIntent.AskAuthorized) auth.asked = true;
             if (act.kind == DialogueActKind.ConfirmAuthorized) auth.confirmed = true;
 
+            // A fact that was CHECKED replaces what the caller had been saying from memory, so every
+            // later answer — and the compare chip built from it — agrees with what they just read out.
+            if (act.kind == DialogueActKind.ReCheckFact && act.fact != null) Correct(p, act.fact);
+
+            // Whatever fact was just stated is what "are you sure?" will refer to next.
+            if (act.fact != null)
+            {
+                p.ticket.dialogue.lastFact = act.fact.type;
+                p.ticket.dialogue.lastWasSessionCode = false;
+            }
+
             Post(p, truth, act.content, act);
 
             if (act.endsCall)
@@ -85,6 +101,29 @@ namespace POSTechSupport.AI
                 p.ticket.chat.Add(new ChatLine { kind = ChatKind.System, text = "[Call disconnected — customer hung up]" });
             }
             return act;
+        }
+
+        /// <summary>
+        /// Writes a checked fact back into the persona. This is the one place the caller's memory is
+        /// mutated during a call: PersonaFactory rolls it once at spawn, and only the player asking them
+        /// to go and look can change it afterwards.
+        /// </summary>
+        private static void Correct(ProblemInstance p, FactRef fact)
+        {
+            switch (fact.type)
+            {
+                case FactType.StoreName: p.persona.statedStoreName = fact.value; break;
+                case FactType.OwnerName: p.persona.statedOwnerName = fact.value; break;
+                case FactType.MachineId: p.persona.statedMachineId = fact.value; break;
+            }
+
+            // The old value has just been retracted, so it must not stay armed — or displayed as a
+            // verdict — in the compare widget.
+            var cmp = p.ticket.compare;
+            if (cmp.pending != null && cmp.pendingType == fact.type && cmp.pendingSource == CompareSource.Chat)
+                cmp.pending = null;
+            if (cmp.result != CompareResult.None && cmp.resultType == fact.type)
+                cmp.result = CompareResult.None;
         }
 
         /// <summary>Guard the template, post it, then let the model try to improve it in the background.</summary>

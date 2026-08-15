@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8525c2c781204248a99d868416ffab6, type: 3}
+  m_Name: XPSkin
+  m_EditorClassIdentifier: POSTechSupport::POSTechSupport.UI.XPSkin
+  windowBase: {fileID: 21300000, guid: 406a4252dbe24440382f8fe8e9b82d10, type: 3}
+  windowHeader: {fileID: 21300000, guid: c940c4a1523a944ccbcf4de80d5348df, type: 3}
+  windowHeaderInactive: {fileID: 21300000, guid: 2e20c3e6e02e546f68cd64a121bb9a0b, type: 3}
+  button: {fileID: 21300000, guid: 3b6c23755d4a04384990ed76e960b65f, type: 3}
+  buttonFocus: {fileID: 21300000, guid: 50fdce308a85b4d018fdbe176061a608, type: 3}
+  buttonPressed: {fileID: 21300000, guid: 37cdc36655b624a4393634c3026331e4, type: 3}
+  buttonInactive: {fileID: 21300000, guid: 249fd2c0039ed43b1923735642676836, type: 3}
+  innerFrame: {fileID: 21300000, guid: f90e7c401e81741deb620ca9eb4cc35b, type: 3}
+  innerFrameInverted: {fileID: 21300000, guid: 12b3832411421446c90d61258a7f1568, type: 3}
+  sliderBackground: {fileID: 21300000, guid: a13a8bd1f6f044920810666841aa6e83, type: 3}
+  sliderHandle: {fileID: 21300000, guid: ff3b3958c00e04b0eae7d4757ef4f7b4, type: 3}
+  wallpaper: {fileID: 21300000, guid: c3e978e61244849c5bb3e496a435bc60, type: 3}
+  titleBar: {fileID: 21300000, guid: 643c01846dbb54faf87587ac07f4bdee, type: 3}
+  titleBarInactive: {fileID: 21300000, guid: 2e60bae0039aa4e56acca28d436e7ba9, type: 3}
+  taskbar: {fileID: 21300000, guid: f86f66c24ec844733a55bcf5e7cc0029, type: 3}
+  startButton: {fileID: 21300000, guid: 57d65f76e0f1540c480d8d1469c6dbc7, type: 3}
+  startButtonPressed: {fileID: 21300000, guid: b55731d22e491473d86ea255cb819a81, type: 3}
+  taskButton: {fileID: 21300000, guid: d6aaffd5b03a947379c682e94cd528a2, type: 3}
+  taskButtonActive: {fileID: 21300000, guid: 55c0d4d93cf3f4966907c5ad396e5043, type: 3}
+  tray: {fileID: 21300000, guid: 0da1051b86db14e79bfbe50e85f00b46, type: 3}
+  closeButton: {fileID: 21300000, guid: 2899563e2c6864f3fbe5d3fc67633849, type: 3}
+  minimizeButton: {fileID: 21300000, guid: d7bbb6c55f7984abaa7785b938007202, type: 3}
+  maximizeButton: {fileID: 21300000, guid: 0f1f65a5b28734b3b979da559c8af95e, type: 3}
+  startLogo: {fileID: 21300000, guid: c77b28e8f80434fdca92f37a7c3e9d09, type: 3}
+  icons:
+  - key: system
+    sprite: {fileID: 21300000, guid: ef38b888b64954a989850e8b0e4fe857, type: 3}
+  - key: network
+    sprite: {fileID: 21300000, guid: e55681f41e8034a82b5323058ca6d282, type: 3}
+  - key: possoftware
+    sprite: {fileID: 21300000, guid: 90a3fa6f1b8c944f98d9bda9b88563a3, type: 3}
+  - key: terminal
+    sprite: {fileID: 21300000, guid: 89be9c0cbaf054de78119753706ecc67, type: 3}
+  - key: printer
+    sprite: {fileID: 21300000, guid: da1c46ba9b84c4123b1cad1bb4f136a5, type: 3}
+  - key: devicemanager
+    sprite: {fileID: 21300000, guid: cdc65d5a62792441a9a4869698fc56fc, type: 3}
+  - key: cashdrawer
+    sprite: {fileID: 21300000, guid: 9d9183054ea1a4adcad8c7732dcc975d, type: 3}
+  - key: mycomputer
+    sprite: {fileID: 21300000, guid: e0a5e5b4471e14234a59de47c7dfea8f, type: 3}
+  - key: recyclebin
+    sprite: {fileID: 21300000, guid: 4d910eca0bf144b3c9ca71dd427e1344, type: 3}

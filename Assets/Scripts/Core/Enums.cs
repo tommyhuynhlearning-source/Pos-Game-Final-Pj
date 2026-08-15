@@ -64,7 +64,9 @@ namespace POSTechSupport.Core
     public enum TicketStatus { InProgress, Resolved, Degraded }
 
     /// <summary>Where a call is in its lifecycle. Distinct from the health verdict above.</summary>
-    public enum CallLifecycleStatus { Queued, Ringing, Active, Closed, Missed, Abandoned }
+    /// HandledByOtherTech = the caller left the queue while the agent was on another call, so a colleague
+    /// (or the next shift) took it. Neutral: no complaint, no resolved credit — see TicketManager.
+    public enum CallLifecycleStatus { Queued, Ringing, Active, Closed, Missed, Abandoned, HandledByOtherTech }
 
     /// <summary>
     /// Final closed sub-state carried into the night's call log (prototype's "Closed-*").
@@ -83,6 +85,13 @@ namespace POSTechSupport.Core
 
     /// <summary>Outcome of a click-to-compare (only exists after the player compares two facts).</summary>
     public enum CompareResult { None, Match, Mismatch }
+
+    /// <summary>
+    /// How a remote-connect attempt ended. The three failures are kept apart on purpose — a mistyped ID,
+    /// the wrong site's device, and a wrong code are different mistakes, and one message for all three
+    /// leaves the player unable to tell which one they made.
+    /// </summary>
+    public enum RemoteConnectOutcome { None, Connected, UnknownDevice, NoSession, PasscodeRejected }
 
     /// <summary>ChatLine.kind — a line in the customer conversation panel.</summary>
     public enum ChatKind { Customer, Agent, System, Sms }

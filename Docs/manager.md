@@ -106,18 +106,24 @@ public class TicketManager : MonoBehaviour {
     public ProblemInstance active;            // ticket đang mở (player đang xử lý)
     public List<ProblemInstance> history;     // đã đóng trong đêm này (Closed-*/Missed/Abandoned)
 
-    public void Enqueue(ProblemInstance p);
+    public void Enqueue(ProblemInstance p, float elapsed, float patienceSec);   // set queueDeadline
     public void PromoteNextToRinging();        // queue.Pop() → ringing, set ringDeadline
+    public int  DrainImpatientQueue(float elapsed);   // hết kiên nhẫn → Missed hoặc HandledByOtherTech
     public void Answer();                      // ringing → active
     public void Decline();                     // ringing → Missed, vào history
     public void Close(ProblemInstance p, CallLifecycleStatus finalLifecycle);
     public void FlushRemaining();              // cuối ca: đóng nốt queue/ringing/active còn dở
+    public int  CountBy(CallLifecycleStatus s);       // thống kê cho HUD / End-of-night
 }
 ```
 
-**Cơ chế:** hàng đợi FIFO đơn giản — `ringing` timeout sau `config.ringTimeoutSec` giây không Answer → tự động `Decline()` (status `Missed`) → `MailboxManager.FileComplaint(HarmType.MissedCall)`. `FlushRemaining()` (gọi bởi `ShiftManager.EndShift()`) xử lý 3 trường hợp còn sót: `ringing` chưa trả lời → Missed; `active` đang dở → chấm bằng `ResolutionChecker.EvaluateTicket()` rồi đóng Closed-Resolved/Closed-Degraded/Abandoned; `queue` còn lại chưa tới lượt → Missed hàng loạt. Mỗi trường hợp lỗi đều sinh `HarmEvent` tương ứng.
+**Cơ chế:** hàng đợi FIFO — `ringing` timeout sau `config.ringTimeoutSec` giây không Answer → `Missed` → `MailboxManager.FileComplaint(HarmType.MissedCall)`.
 
-**Purpose:** đây là "nguồn sự thật" cho **`CallLifecycleStatus`** của mọi ticket trong đêm (Queued/Ringing/Active/Closed/Missed/Abandoned) — tách biệt khỏi **`TicketStatus`** (verdict sức khỏe, do `ResolutionChecker` tính) đúng như đã ghi rõ ở [schema.md](schema.md).
+Người gọi KHÔNG chờ vô hạn: quá `config.queuePatienceSec` thì rời queue, và **ai chịu trách nhiệm phụ thuộc lúc đó agent đang làm gì** — đang có `active` → `HandledByOtherTech` (đồng nghiệp/ca sau nhận, TRUNG TÍNH: không complaint, không điểm); đang rảnh → `Missed` + complaint. Đây là thứ cho phép đặt `callsPerHour` cao (10 call/giờ = 80 call/đêm) mà không phải call nào không nhấc cũng thành strike.
+
+`FlushRemaining()` (gọi bởi `ShiftManager.EndShift()`): `ringing` + `queue` còn sót → `HandledByOtherTech` (hết ca thì không phải lỗi player); chỉ `active` đang dở mới bị chấm bằng `ResolutionChecker.EvaluateTicket()` → Closed-Resolved/Closed-Degraded/Abandoned (Abandoned sinh `HarmEvent`).
+
+**Purpose:** đây là "nguồn sự thật" cho **`CallLifecycleStatus`** của mọi ticket trong đêm (Queued/Ringing/Active/Closed/Missed/Abandoned/HandledByOtherTech) — tách biệt khỏi **`TicketStatus`** (verdict sức khỏe, do `ResolutionChecker` tính) đúng như đã ghi rõ ở [schema.md](schema.md). `ScoreManager` chỉ đếm `ClosedOutcome.Resolved/Degraded` nên call bị route đi không ảnh hưởng lương; `ConsequenceManager.Commit` bỏ qua ticket chưa từng được xử lý.
 
 **Cách sử dụng:** `ShiftManager` gọi `Enqueue`/`FlushRemaining`. UI popup "Incoming Call" gọi `Answer()`/`Decline()`. Khi đóng ticket (player bấm Hang Up, hoặc customer tự cúp vì `unauthorizedActionTaken`/authorization fail — xem app.md Caller Authorization), UI gọi `Close(active, ...)`.
 
@@ -194,7 +200,8 @@ public class ProblemGenerator {
     public ProblemInstance GenerateAuto(int day) => autoFactory.Create(day);
     public ProblemInstance GenerateForced(int day, string[] issueIds);
     public void EnableRecurring(Func<int, List<string>> dueToday, Action<string> consume);  // bọc autoFactory
-    public static int TicketCountForDay(int day);
+    public static int TicketCountForDay(int day, GameConfigSO config = null);  // = config.CallsForNight(day);
+                                                                              // config null → ramp cũ 2..6/đêm
 }
 ```
 
@@ -231,16 +238,22 @@ public class VerificationManager : MonoBehaviour {
     public void SelectCrmResult(TicketState t, int index);
     public void CompareClick(ProblemInstance p, CompareSource source, FactType type, string value);
         // 2 lần gọi liên tiếp (1 field CRM + 1 field chat cùng type) → chấm Match/Mismatch, ghi p.ticket.compare
-    public bool TryRemoteConnect(TicketState t, string remoteId, string passcode);
-        // đúng StoreProfileSO.remoteId THẬT của record được chọn + đúng passcode phiên này → true
-    public bool CanGrantRemote(VerificationState v);                    // v.storeId/identity/machine đều Verified
+    public bool TryRemoteConnect(ProblemInstance p, string remoteId, string passcode);
+        // đúng remoteId của store ĐANG GỌI (p.store) + đúng passcode phiên này → true
+        // so khớp chỉ theo chữ+số: "585 966 535" = "585966535" = "585-966-535", passcode không phân biệt hoa/thường
+        // fail → UnknownDevice (ID không tiệm nào có = gõ sai) | NoSession (máy của tiệm khác = chọn nhầm
+        //         record) | PasscodeRejected (đúng máy, sai mã)
 }
+// Chọn record CRM tự điền sẵn Device ID vào form. Bắt player gõ tay 9 chữ số chỉ tạo ra một kiểu thua
+// mới — đảo 2 chữ số — mà thông báo lỗi cũ không phân biệt được với việc chọn nhầm tiệm.
 public enum CompareSource { Crm, Chat }
 ```
 
-**Cơ chế:** KHÔNG có ground-truth tự động hiện ra (đã bỏ ý tưởng "Incoming Caller ID" — xem app.md Caller Authorization, đây là challenge cố ý cho player). Player tự bấm 1 field CRM + 1 câu chat cùng loại (`FactType`) → `CompareClick` so sánh giá trị thật, set `pending`→`result` (Match/Mismatch). Match trên `OwnerName` tự động set `authorization.confirmed = true` (xem app.md). `TryRemoteConnect` không hard-block chọn sai record — record nào cũng có remoteId/passcode RIÊNG của nó, chọn record sai (decoy) thì connect chỉ đơn giản fail, không có gì "sập" cả — verify thật sự là việc của player, không phải của hệ thống.
+**Cơ chế:** KHÔNG có ground-truth tự động hiện ra (đã bỏ ý tưởng "Incoming Caller ID" — xem app.md Caller Authorization, đây là challenge cố ý cho player). Player tự bấm 1 field CRM + 1 câu chat cùng loại (`FactType`) → `CompareClick` so sánh giá trị thật, set `pending`→`result` (Match/Mismatch). CHỈ match trên `OwnerName` mới ghi state (`authorization.confirmed = true`, xem app.md); match trên `StoreName`/`MachineId` là **thông tin cho player**, không phải phán quyết — khách có thể đang đọc tên tiệm hàng xóm, match với record của tiệm đó là match nhầm tài khoản. `TryRemoteConnect` không hard-block chọn sai record — record nào cũng có remoteId/passcode RIÊNG của nó, chọn record sai (decoy) thì connect chỉ đơn giản fail, không phạt gì cả — verify thật sự là việc của player, không phải của hệ thống.
 
-**Purpose:** tách lớp "đúng tiệm nào" (CRM lookup, `VerificationState.storeId/machine`) khỏi lớp "đúng người nào" (`identity`, gắn với `PersonaInstance.role`/Caller Authorization) — 2 lớp verify độc lập, có thể đúng cái này sai cái kia.
+**Không có cờ "đã verify":** toàn bộ hệ quả chỉ nằm ở 2 chỗ trên ticket — `remoteConnect.connected` và `authorization.confirmed`. `VerificationState` (storeVerified/identityVerified/machineVerified + `CanGrantRemote`) đã bị xoá: không có ai đọc nó, và nó bị ghi bởi 2 nguồn với 2 định nghĩa mâu thuẫn (chọn record theo ground truth vs. compare tên theo lời khách).
+
+**Purpose:** tách lớp "đúng tiệm nào" (CRM lookup → connect được hay không) khỏi lớp "đúng người nào" (Caller Authorization, gắn với `PersonaInstance.role`) — 2 lớp verify độc lập, có thể đúng cái này sai cái kia.
 
 **Cách sử dụng:** UI 3 cột trong ticket window (CRM panel giữa, remote-connect form bên phải) gọi trực tiếp các hàm trên theo click của player. `TransactionManager` hỏi `VerificationManager` (qua `ProblemInstance.ticket.authorization`) trước khi cho phép Refund/Void.
 
@@ -335,6 +348,7 @@ public class TransactionManager : MonoBehaviour {
 public class GroundTruth {
     public string callerName; public CallerRole callerRole; public PersonaProfileSO persona;
     public string statedStoreName, statedOwnerName, statedMachineId;   // có thể SAI theo memoryAccuracy
+    public string trueStoreName, trueOwnerName, trueMachineId;         // thứ họ ĐỌC ĐƯỢC khi bị hỏi lại
     public bool callerAuthorized, isRefundVoidCase;
     public List<string> visibleSymptoms;        // symptom.layman ONLY — .technical không được copy sang
     public static GroundTruth From(ProblemInstance p);
@@ -344,8 +358,8 @@ public class GroundTruth {
 // ResolutionCondition, VirtualDesktopInstance. AI không thể lộ thứ nó chưa từng được cấp.
 
 public enum PlayerIntent { Unknown, Greeting, AskSymptom, AskStoreName, AskOwnerName, AskMachineId,
-                           AskAuthorized, AskWhenStarted, AskWhatTried, InstructCustomer,
-                           RequestSmsReceipt, AskTechnical, Reassure, Goodbye }
+                           AskDoubleCheck, AskSessionCode, AskAuthorized, AskWhenStarted, AskWhatTried,
+                           InstructCustomer, RequestSmsReceipt, AskTechnical, Reassure, Goodbye }
 
 public class IntentClassifier { ParsedUtterance Classify(string text); }   // keyword, offline
 public static class TechnicalVocabulary { string[] Banned; bool ContainsAny(s); string FirstHit(s); }
@@ -378,6 +392,16 @@ public class DialogueManager {
 **Cơ chế:** đúng 4 bước Mục 9 GDD chính — (1) `IntentClassifier` → intent; (2) `DialoguePolicy` đọc `GroundTruth` + `TicketState.dialogue` rồi quyết `DialogueAct`, chặn `AskTechnical` bằng KnowledgeBoundary; (3) sinh câu; (4) `GroundingGuard` quét trước khi lên màn hình.
 
 Điểm quan trọng về **thứ tự**: bước 3 chạy SAU khi câu template đã được post, không phải trước. Template hiện ngay lập tức và luôn an toàn; nếu bật model và nó trả lời kịp, cùng một object `ChatLine` bị ghi đè tại chỗ. Nhờ vậy bật LLM chỉ có thể làm câu chữ tự nhiên hơn chứ không bao giờ làm treo cuộc gọi, và gỡ model ra thì game vẫn chơi được y nguyên.
+
+**Passcode KHÔNG nằm trong CRM.** Record chỉ có `remoteId` (device ID cố định); mã phiên sinh ra trên màn hình máy khách và khách phải **đọc qua điện thoại** (`AskSessionCode`). Trước đây mỗi record mang một `fixedPasscode` để làm mồi — game in nó ra dưới nhãn "Remote credentials" rồi từ chối chính nó. Một cái bẫy mà người chơi **không có cách nào** phân biệt với bug thì không phải bẫy: nó là dữ liệu nói dối, và nó đã bị xoá. Nguyên tắc: **màn hình không bao giờ hiển thị một credential không dùng được.**
+
+**"Are you sure?" — đối trọng của `memoryAccuracy`.** `AskDoubleCheck` không phải câu hỏi mới, nó **nghi ngờ câu vừa rồi**: `DialogueState.lastFact` ghi lại fact cuối khách khai, và khách đi **NHÌN** (hoá đơn, giấy phép treo tường, nhãn dán trên máy) rồi đọc ra **giá trị THẬT**. `DialogueManager` ghi giá trị đó đè vào `PersonaInstance.stated*` — đây là chỗ DUY NHẤT trí nhớ của khách bị sửa trong lúc gọi — nên mọi câu trả lời sau đó, và cả chip click-to-compare, đều nhất quán với thứ họ vừa đọc. Compare đang treo trên giá trị cũ bị huỷ theo.
+
+Lý do phải có: khách khai tên tiệm hàng xóm → player tra ra một record CRM **trông hoàn hảo** → connect fail không rõ lý do, mà CRM lại chỉ search được theo `storeId`/`storeName` nên không còn đường nào tìm ra record đúng. Ticket đó thua vì thiết kế, không phải vì player. Thử thách vẫn nguyên: **không có gì nhắc player nghi ngờ cả**, ai không nghi thì vẫn đi thẳng vào tài khoản sai.
+
+Hai chi tiết nhỏ nhưng quyết định việc nó có dùng được không: (a) câu mở đầu đã xưng tên tiệm, nên `lastFact` được set = `StoreName` ngay từ giây đầu — hỏi "Are you sure?" lúc nào cũng có nghĩa, không bao giờ rơi vào "sure about what?"; (b) nếu thứ vừa nói là **mã phiên** thì nghi ngờ nó chỉ khiến khách đọc lại đúng mã đó ("I'm looking right at it"), vì họ đang nhìn thẳng vào màn hình — mã không bao giờ là chỗ sai, và nói "sure about what?" ở đây sẽ đẩy player đi tìm lỗi ở đúng nơi không có lỗi.
+
+Ai được quyền nhớ nhầm cái gì: khách **không bao giờ sai về thứ họ LÀ**. Chủ tiệm luôn khai đúng tên mình (đã xưng tên ngay câu mở đầu — trả lời khác đi 30 giây sau không phải là quên, mà là hai người khác nhau). Chỉ nhân viên mới nhớ nhầm tên chủ; ai cũng có thể nhớ nhầm tên tiệm và số register.
 
 `GroundingGuard` kiểm 2 thứ: (a) từ cấm trong `TechnicalVocabulary` — dùng CHUNG list với `IntentClassifier` nên "agent không hỏi được" và "customer không nói được" không bao giờ lệch nhau; (b) rò rỉ **tên field state** của fault thật. Chỉ kiểm tên field, KHÔNG kiểm giá trị fault — "Empty" là từ hoàn toàn bình thường để nói về khay giấy, cấm nó là bịt miệng câu nói lương thiện. Guard cũng chạy trên chính câu template: nếu template trượt thì đó là bug nội dung, cần bắt tại đây thay vì ship ra ngoài.
 

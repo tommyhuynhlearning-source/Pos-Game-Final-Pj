@@ -80,7 +80,7 @@ LỚP AI (customer)
 
 ## 6. Runtime classes (KHÔNG phải SO)
 
-> **Đã tách sang [schema.md](schema.md)** — `VirtualDesktopInstance`, `ProblemInstance`, `ActiveFault`, `VerificationState`, `TransactionState`, `TicketState` (+ sub-class: `CallerInfo`, `CrmLookupState`, `CompareState`, `AuthorizationState`, `RemoteConnectState`).
+> **Đã tách sang [schema.md](schema.md)** — `VirtualDesktopInstance`, `ProblemInstance`, `ActiveFault`, `TransactionState`, `TicketState` (+ sub-class: `CallerInfo`, `CrmLookupState`, `CompareState`, `AuthorizationState`, `RemoteConnectState`).
 
 ---
 

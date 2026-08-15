@@ -14,13 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: POSTechSupport::POSTechSupport.Data.ContentDatabaseSO
   config: {fileID: 11400000, guid: b2806257283ac4beea61ba9d11323ad3, type: 2}
   realStore: {fileID: 11400000, guid: 2a2934be1225d492f9dc0b9cc9286559, type: 2}
-  crmDecoys:
-  - {fileID: 11400000, guid: 6116ebe2cdb41459f86e46efa236530e, type: 2}
-  - {fileID: 11400000, guid: f925cc78bde2d4b84b3e764157c95d02, type: 2}
   crmClusterCount: 6
   storeNames: {fileID: 11400000, guid: 68ea04361ad8348cf866a7fa58e9110c, type: 2}
   personaPool:
-  - {fileID: 11400000, guid: a12ce05de043a4c728033ee0567e89f5, type: 2}
+  - {fileID: 11400000, guid: f52354f9aeeb34848a73d01081ef4a1d, type: 2}
   staffCallerNames:
   - Jenny Park
   - Carlos Ibarra

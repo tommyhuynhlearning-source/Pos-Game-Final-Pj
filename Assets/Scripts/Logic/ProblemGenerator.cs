@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using POSTechSupport.Data;
 
@@ -30,7 +29,8 @@ namespace POSTechSupport.Logic
             var machine = template != null && template.machines != null && template.machines.Length > 0
                 ? template.machines[0] : null;
 
-            Directory = BuildDirectory(content, machine);
+            Directory = new StoreDirectoryFactory(content.storeNames, machine)
+                .Build(Mathf.Max(1, content.crmClusterCount));
 
             var pool = IssuePool.DefaultTable();
             var personaFactory = new PersonaFactory(content.personaPool, content.staffCallerNames);
@@ -41,22 +41,6 @@ namespace POSTechSupport.Logic
                                              IssuePool.OnboardingMaxDay(pool));
             randomPool = new RandomPoolProblemFactory(assembler, pool);
             autoFactory = randomPool;
-        }
-
-        /// <summary>
-        /// Rolled directory by default (a different shop on every call, each sitting beside a near-miss).
-        /// Setting crmClusterCount to 0 falls back to the authored realStore + crmDecoys, where only the
-        /// real record may call — the old fixed-customer behaviour, kept for scripted demos and tests.
-        /// </summary>
-        private static StoreDirectory BuildDirectory(ContentDatabaseSO content, MachineConfig machineTemplate)
-        {
-            if (content.crmClusterCount > 0)
-                return new StoreDirectoryFactory(content.storeNames, machineTemplate)
-                    .Build(content.crmClusterCount);
-
-            var authored = content.CrmDirectory();
-            var callers = authored.Where(r => r.isRealAccount).ToList();
-            return new StoreDirectory(authored, callers);
         }
 
         /// <summary>Normal spawn during a shift — rolls from the day's pool (or a due recurrence).</summary>
@@ -73,7 +57,13 @@ namespace POSTechSupport.Logic
         public void EnableRecurring(Func<int, List<string>> dueToday, Action<string> consume) =>
             autoFactory = new RecurringProblemFactory(assembler, randomPool, dueToday, consume);
 
-        /// <summary>Roughly 2–6 tickets/night, scaling up with the day (prototype ticketCountForDay).</summary>
-        public static int TicketCountForDay(int day) => Mathf.Clamp(Mathf.RoundToInt(2 + day * 0.05f), 1, 6);
+        /// <summary>
+        /// Calls to schedule tonight. The rate lives on <see cref="GameConfigSO"/> as calls per IN-GAME
+        /// hour so it can be retuned from the Inspector without touching code; the hard-coded prototype
+        /// ramp (2–6/night) is only the fallback when no config is wired.
+        /// </summary>
+        public static int TicketCountForDay(int day, GameConfigSO config = null) =>
+            config != null ? config.CallsForNight(day)
+                           : Mathf.Clamp(Mathf.RoundToInt(2 + day * 0.05f), 1, 6);
     }
 }

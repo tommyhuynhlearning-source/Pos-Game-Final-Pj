@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using POSTechSupport.Core;
 using POSTechSupport.Logic;
 using POSTechSupport.Simulation;
 
@@ -36,6 +37,11 @@ namespace POSTechSupport.Managers
         {
             foreach (var p in nightHistory)
             {
+                // Only tickets the player actually worked can leave a temp fix behind. Missed calls and
+                // ones another tech took were never touched, and at a high call volume they are the
+                // majority of the night's history.
+                if (p.ticket.lifecycle is not (CallLifecycleStatus.Closed or CallLifecycleStatus.Abandoned))
+                    continue;
                 foreach (var issue in p.issues)
                 {
                     bool symptomCleared = issue.resolution.symptomCleared == null ||

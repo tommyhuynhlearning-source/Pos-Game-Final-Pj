@@ -19,7 +19,7 @@ MonoBehaviour:
   faults:
   - module: 2
     stateField: wifiNetwork
-    faultValue: SunriseDiner-Guest
+    faultValue: '{SSID_GUEST}'
   symptoms:
   - layman: "The register just sits there \u2014 it won't let me ring anything up,
       like it's not talking to the system at all."
@@ -27,20 +27,20 @@ MonoBehaviour:
       SSID."
   clues:
   - revealedBy: 8
-    clueText: "Terminal \u25B8 Network shows Wi-Fi \"SunriseDiner-Guest\" \u2014
-      Network Settings shows the store's actual Wi-Fi is \"SunriseDiner-Main\"."
+    clueText: "Terminal \u25B8 Network shows Wi-Fi \"{SSID_GUEST}\" \u2014 Network
+      Settings shows the store's actual Wi-Fi is \"{SSID}\"."
     isRedHerring: 0
   resolution:
     symptomCleared:
     - module: 2
       field: wifiNetwork
       op: 0
-      expectedValue: SunriseDiner-Main
+      expectedValue: '{SSID}'
     rootCauseFixed:
     - module: 2
       field: wifiNetwork
       op: 0
-      expectedValue: SunriseDiner-Main
+      expectedValue: '{SSID}'
     requiresTestPass: 0
     testReceiptType: 0
   blockedByIssueIds:

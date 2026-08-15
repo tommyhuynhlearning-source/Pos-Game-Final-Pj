@@ -10,7 +10,7 @@
 | **Supervisor** | *[Supervisor Name]* |
 | **Submission date** | August 2026 |
 | **Artefact** | *POS Tech Support* — Unity 6 (6000.5.4f1) simulation game |
-| **Word count** | ≈ 15,300 (Chapters 1–8, including tables; references and appendices excluded) |
+| **Word count** | ≈ 16,200 (Chapters 1–8, including tables; references and appendices excluded) |
 | **Referencing style** | Harvard |
 
 ---
@@ -19,9 +19,9 @@
 
 Technical-support work is a troubleshooting profession, yet the skill at its centre — reasoning backwards from an unreliable verbal report to a root cause inside a dependent system — is rarely trainable outside live service desks, where mistakes are expensive and reproducible practice is impossible. This project designs and implements *POS Tech Support*, a single-player simulation game in which the player works night shifts on a Point-of-Sale (POS) support line: answering calls from non-technical shopkeepers, verifying the caller's identity against a customer-relationship-management (CRM) record, connecting to a simulated remote desktop, tracing a fault through a dependency graph of coupled components, and closing the ticket.
 
-The report makes three contributions. First, it presents a fault-modelling design in which failures are *invalid states inside simulated modules* rather than scripted boolean flags, and in which faults propagate downstream through an explicit dependency graph while repairs must proceed upstream — a game-mechanical realisation of the device-model component of Jonassen and Hung's (2006) troubleshooting architecture. A taxonomy of forty authored faults is built on an explicit discriminability rule: every fault must be separable from a fault the player already knows, and the report documents for each one which prior fault it is confusable with. Second, it presents a four-layer software architecture (Data → Simulation → Logic → AI) in which all authored content lives in Unity `ScriptableObject` assets and all mutable state lives in ordinary C# classes, so that verdict logic is a pure function of current state and can never drift out of date. Third, it presents a containment architecture for a language-model non-player character: the simulated customer is handed a deliberately impoverished `GroundTruth` view containing only lay symptom descriptions and identity claims, a rule-based `DialoguePolicy` decides *what may be said*, an optional locally hosted small model may only *reword* that decision, and a `GroundingGuard` inspects the result before display. The model is therefore structurally incapable of leaking the answer, because it was never given it — a stronger guarantee than output filtering alone (Rebedea *et al.*, 2023).
+The report makes three contributions. First, it presents a fault-modelling design in which failures are *invalid states inside simulated modules* rather than scripted boolean flags, and in which faults propagate downstream through an explicit dependency graph while repairs must proceed upstream — a game-mechanical realisation of the device-model component of Jonassen and Hung's (2006) troubleshooting architecture. A taxonomy of forty authored faults is built on an explicit discriminability rule: every fault must be separable from a fault the player already knows, and the report documents for each one which prior fault it is confusable with. The same rule is applied to identity rather than only to faults: the CRM directory the player verifies against is generated in families of mistakeable shop names, and each site's network and record-store identity is derived from its own name, so authored fault content is store-agnostic by construction. Second, it presents a four-layer software architecture (Data → Simulation → Logic → AI) in which all authored content lives in Unity `ScriptableObject` assets and all mutable state lives in ordinary C# classes, so that verdict logic is a pure function of current state and can never drift out of date. Third, it presents a containment architecture for a language-model non-player character: the simulated customer is handed a deliberately impoverished `GroundTruth` view containing only lay symptom descriptions and identity claims, a rule-based `DialoguePolicy` decides *what may be said*, an optional locally hosted small model may only *reword* that decision, and a `GroundingGuard` inspects the result before display. The model is therefore structurally incapable of leaking the answer, because it was never given it — a stronger guarantee than output filtering alone (Rebedea *et al.*, 2023).
 
-The artefact comprises approximately 6,650 lines of C# across forty-three files, a 1,465-line design specification, and a validated 2,700-line web prototype used as an executable reference. Verification was performed by a cascade smoke test that injects all forty authored faults and asserts the resulting Blocked/Error pattern, together with structured playtesting in the editor. Limitations are reported honestly: no automated unit-test suite exists, the cross-night recurrence mechanism is wired but dormant, voice interaction was descoped, and no summative study with human participants was conducted, so all learning claims in this report are design claims argued from literature rather than measured effects.
+The artefact comprises approximately 7,600 lines of C# across fifty files, a 1,465-line design specification, and a validated 2,700-line web prototype used as an executable reference. Verification was performed by a cascade smoke test that injects all forty authored faults and asserts the resulting Blocked/Error pattern, together with structured playtesting in the editor. Limitations are reported honestly: no automated unit-test suite exists, the cross-night recurrence mechanism is wired but dormant, voice interaction was descoped, and no summative study with human participants was conducted, so all learning claims in this report are design claims argued from literature rather than measured effects.
 
 **Keywords:** serious games; troubleshooting; diagnostic reasoning; model-based diagnosis; game architecture; ScriptableObject; large language models; NPC dialogue; guardrails; Unity.
 
@@ -232,11 +232,11 @@ No instrument here measures learning. Establishing that would require a controll
 
 ### 4.1 The core loop
 
-The player is a probationary technical-support agent on the night shift, 20:00 to 04:00, compressed into eight minutes of real time. The campaign is sixty nights. Each night, calls arrive on a tempo curve — sparse and easy early in the campaign, dense and compound late — and each call is a ticket proceeding through six phases:
+The player is a probationary technical-support agent on the night shift, 20:00 to 04:00, compressed into eight minutes of real time. The campaign is sixty nights. Each night, calls arrive at a configured rate on a tempo curve — sparse and easy early in the campaign, dense and compound late — and each call is a ticket proceeding through six phases:
 
 1. **Answer.** An incoming-call popup rings for twelve seconds; letting it lapse counts as a missed call and files a complaint.
 2. **Verify.** The caller states a store name, an owner name and a register identifier. Any of these may be wrong, because personas have a memory-accuracy trait. The player searches a CRM, selects among results that include decoys, and cross-checks the caller's claims against the record.
-3. **Connect.** Remote access requires the correct remote identifier for the *selected* CRM record plus a per-session passcode. Selecting the wrong record does not raise an error — the connection simply fails, because verifying is the player's job, not the system's.
+3. **Connect.** Remote access requires two credentials from two different sources: the device identifier, held on the CRM record and copied into the form when the player selects one, and a per-session passcode, which exists only on the customer's own screen and must be asked for over the phone. The split is deliberate. An earlier version stored a passcode on every record, so that a wrong record displayed a credential under the heading "Remote credentials" which the connect step then refused — a trap the player had no means of distinguishing from a defect, and which playtesting confirmed was read as one. The design rule adopted in response is that the interface never displays a credential that cannot work: what is shown is true, and only the choice of *which* record to read it from is the player's to get wrong. Failures are reported distinctly — an identifier no site owns, a device belonging to another site, a code the right device refuses — because a mistyped digit, a wrong account and a wrong code are different mistakes, and one message for all three teaches nothing.
 4. **Diagnose.** Inside a simulated desktop of seven applications, the player runs diagnostic actions that reveal clues about module state. Faults must be traced against the dependency graph.
 5. **Repair.** Fix actions write module state. Some are gated by preconditions; some are marked risky and can make matters worse.
 6. **Close.** The ticket receives a health verdict — Resolved, Degraded, or still In Progress — recomputed from current state at the moment of closing.
@@ -399,7 +399,9 @@ Verification is split into two independent layers that can each succeed while th
 
 The mechanic is deliberately manual. There is no automatic caller identification. The player clicks one CRM field and one chat statement of the same fact type, and the system reports match or mismatch. Nothing is verified until the player performs the comparison — an application of *Papers, Please*'s core mechanic (Pope, 2013) and of Endsley's (1995) point that situation awareness is constructed by the operator, not delivered to them.
 
-For the comparison to be worth performing, the directory must contain records worth confusing. The decoys are therefore *generated by rule* rather than authored individually. A name table holds families of mistakeable first words — {Sunrise, Sunset, Sunnyside}, {White Horse, White Hart}, {Cornerstone, Corner House} — which are crossed with a list of trades to produce accounts in confusable clusters: the same first word under two trades ("Sunrise Diner", "Sunrise Bakery") and a sibling first word under the same trade ("Sunset Diner"). Sixteen families are authored and six are rolled per campaign, giving roughly twenty accounts, each with its own owner, address, remote identifier and passcode. A caller is drawn from that directory per ticket, so a different shop is on the line each time; and when persona memory accuracy corrupts the stated store or owner name, the wrong value is read from a *near-miss record in the same directory* rather than from a hardcoded string. The misremembered name is therefore always a shop that genuinely exists two rows away — which is the shape of the mistake the mechanic is trying to teach the player to catch.
+For the comparison to be worth performing, the directory must contain records worth confusing. The decoys are therefore *generated by rule* rather than authored individually. A name table holds families of mistakeable first words — {Sunrise, Sunset, Sunnyside}, {White Horse, White Hart}, {Cornerstone, Corner House} — which are crossed with a list of trades to produce accounts in confusable clusters: the same first word under two trades ("Sunrise Diner", "Sunrise Bakery") and a sibling first word under the same trade ("Sunset Diner"). Sixteen families are authored and six are rolled per campaign, giving roughly twenty accounts, each with its own owner, address and remote device identifier. A caller is drawn from that directory per ticket, so a different shop is on the line each time; and when persona memory accuracy corrupts the stated store or owner name, the wrong value is read from a *near-miss record in the same directory* rather than from a hardcoded string. The misremembered name is therefore always a shop that genuinely exists two rows away — which is the shape of the mistake the mechanic is trying to teach the player to catch.
+
+Which near miss is chosen turns out to matter as much as having one. Candidates are *ranked* rather than pooled: a record from the same authored family that also shares a literal word ("Corner House Barbers" against "Corner House Pharmacy") outranks a family sibling with no shared word, which outranks a record that merely happens to share a trade. An early unranked implementation reached for the softest option — a shop from an unrelated family that happened to also be a bookshop — because after several families rolled the same trade there were many such records and only one true sibling. Two fixes followed from reading the generated directory rather than the code: rank the candidates, and prevent families from reusing a trade word, which in a six-family sample raised the trade-word count from five distinct trades to twelve and made the strongest confusion the one actually presented.
 
 The same reasoning applies below the CRM. Each shop's Wi-Fi SSIDs and record-store host name are *derived* from its store name (`Corner House Bakery` → `CornerHouseBakery-Main`, `CornerHouseBakery-Guest`, `db.cornerhousebakery.local`), so the simulated desktop belongs to the shop that called rather than to whichever shop the content author happened to name. This is what forces the fault corpus to become store-agnostic, discussed as an implementation consequence in §5.3.
 
@@ -431,24 +433,24 @@ Scoring is intentionally simple — ten currency units per resolved ticket, minu
 
 ### 5.1 Structure and scale
 
-The implementation comprises 7,298 lines of C# across fifty files, organised so that folder, namespace and architectural layer coincide:
+The implementation comprises 7,619 lines of C# across fifty files, organised so that folder, namespace and architectural layer coincide:
 
 | Folder | Namespace | Lines | Responsibility |
 |---|---|---|---|
 | `Core/` | `POSTechSupport.Core` | 114 | All enumerations, including `Status` (OK/Error/Blocked) |
-| `Data/` | `POSTechSupport.Data` | 668 | Nine `ScriptableObject` types, shared serialisable types, `StoreRecord`, `StoreIdentity`, content registry |
+| `Data/` | `POSTechSupport.Data` | 710 | Nine `ScriptableObject` types, shared serialisable types, `StoreRecord`, `StoreIdentity`, content registry |
 | `Simulation/` | `POSTechSupport.Simulation` | 641 | `ModuleBase`, six modules, `VirtualDesktopInstance`, `DependencyGraph`, `WifiTable` |
-| `Logic/` | `POSTechSupport.Logic` | 1,045 | Runtime state, `ResolutionChecker`, problem generation, CRM directory generation, transaction model |
+| `Logic/` | `POSTechSupport.Logic` | 1,088 | Runtime state, `ResolutionChecker`, problem generation, CRM directory generation, transaction model |
 | `Managers/` | `POSTechSupport.Managers` | 1,029 | Thirteen service classes |
 | `AI/` | `POSTechSupport.AI` | 688 | The four-stage dialogue pipeline |
-| `UI/` | `POSTechSupport.UI` | 1,160 | `GameUIController`, `UIFactory` |
-| `Editor/` | `POSTechSupport.EditorTools` | 1,688 | Content generator, scene builder, CRM directory preview (editor-only assembly) |
+| `UI/` | `POSTechSupport.UI` | 1,329 | `GameUIController`, `UIFactory` |
+| `Editor/` | `POSTechSupport.EditorTools` | 1,755 | Content generator, scene builder, CRM directory preview (editor-only assembly) |
 | `DevTools/` | `POSTechSupport.DevTools` | 104 | Cascade smoke test |
 | `GameManager.cs` | `POSTechSupport` | 161 | Composition root and night loop |
 
 Two assembly definitions enforce the editor boundary: the runtime assembly `POSTechSupport` and the editor-only `POSTechSupport.Editor`, which references the runtime assembly and is restricted to the Editor platform. This guarantees at compile time that the content generator and scene builder cannot be referenced from shipped code.
 
-That the Editor folder is the single largest component (1,688 lines, 23% of the codebase) is worth noting as a finding rather than an anomaly. A data-driven design relocates effort from gameplay code into content authoring and tooling; the tooling then becomes a first-class part of the system. This is the predicted trade-off of asset-centric Unity architecture (Hipple, 2017) and it materialised as predicted.
+That the Editor folder is the single largest component (1,755 lines, 23% of the codebase) is worth noting as a finding rather than an anomaly. A data-driven design relocates effort from gameplay code into content authoring and tooling; the tooling then becomes a first-class part of the system. This is the predicted trade-off of asset-centric Unity architecture (Hipple, 2017) and it materialised as predicted.
 
 ### 5.2 Data layer, and a deliberately uncomfortable trade-off
 
@@ -515,7 +517,9 @@ Generator.EnableRecurring(Consequence.DueRecurringToday, Consequence.ConsumeRecu
 
 Neither existing factory was modified. This is the open/closed principle producing a measurable result rather than a stylistic preference.
 
-Day pools are authored data (`IssuePool[]`) rather than code, with one implementation detail worth recording: combinations are wrapped in an `IssueCombo` class because Unity cannot serialise jagged arrays. The ticket count per day is `clamp(round(2 + 0.05 × day), 1, 6)`, giving two tickets on night one and five on night sixty.
+Day pools are authored data (`IssuePool[]`) rather than code, with one implementation detail worth recording: combinations are wrapped in an `IssueCombo` class because Unity cannot serialise jagged arrays.
+
+How busy a night is began as the hardcoded `clamp(round(2 + 0.05 × day), 1, 6)` and is now expressed the way the fiction states it: a **rate**, `callsPerHour` on `GameConfigSO`, multiplied by the eight in-game hours of the shift and clamped to a floor and a safety ceiling. A per-day ramp term reproduces the original curve exactly (0.25 calls per in-game hour plus 0.00625 per day gives two calls on night one and five on night sixty), so the tuning that the prototype validated is preserved as a default rather than as a constant. The hardcoded formula survives as the fallback when no config asset is wired, which keeps `ShiftManager` testable without one. The knob is also editable live from the hub screen, and the field it writes is the same `callsPerHour` the inspector shows — one number, two surfaces, which is the same rule the guidance boundary follows in §4.9.
 
 ### 5.5 Services and the composition root
 
@@ -575,11 +579,13 @@ This gives a designer-editable scene with programmatic reproducibility — the l
 
 Interface behaviour follows a rule established early and recorded as project feedback: **tools are always present; only their results depend on the ticket.** Every application, every diagnostic action and every input field renders unconditionally, and only outcomes vary with ticket state. Gating whole interface sections on ticket type railroads the player and creates dead ends — an early prototype hid the IP-entry section on Wi-Fi tickets, removing the very control needed to investigate. Since the design objective is self-directed diagnosis, the interface must be a consistent sandbox. Open sub-tabs are remembered per application across close and reopen, and clue revelation is scoped to the open tab, so exploration is rewarded at a fine grain.
 
+Three interface details are worth recording because each fixes a way the layout fought the player rather than the fault. Every growing list — the call log, the chat transcript, the CRM results, an application body, the knowledge base, the mailbox — is built inside a scroll view rather than a fixed panel, so content that outgrows its box scrolls instead of spilling; the chat additionally snaps to the newest line only when a line is actually added, so scrolling back through a call survives the per-frame refresh. The developer force-call strip is hidden behind a toggle, since a debug tool permanently occupying the night screen is not part of the game. And that strip is laid out as a wrapping grid: twenty buttons in a horizontal layout group are squeezed to a few pixels each and every label breaks one character per line, which is the kind of defect that is invisible in code and obvious in a screenshot.
+
 Art direction uses a retro Windows aesthetic (nine-sliced window frames, headers, buttons) to make the simulated desktop legible as a desktop without the cost of bespoke art.
 
 ### 5.8 Content authoring pipeline
 
-`SampleContentBootstrap` (a large part of the 1,688-line editor assembly) generates the entire content corpus as assets under `Assets/Content/Generated` from a single menu command: forty issues, forty knowledge-base articles, fifty desktop actions, a store-name table, one template store profile, one persona, receipt templates, a game configuration and the content database.
+`SampleContentBootstrap` (a large part of the 1,755-line editor assembly) generates the entire content corpus as assets under `Assets/Content/Generated` from a single menu command: forty issues, forty knowledge-base articles, fifty desktop actions, a store-name table, one template store profile, one persona, receipt templates, a game configuration and the content database.
 
 Authoring content in code rather than by hand in the inspector is an unusual choice with three concrete justifications. Forty faults each with faults, symptoms, clues and resolution conditions is thousands of inspector fields, and hand-entry at that volume produces silent typos. The corpus is also *cross-referential* — blocker relationships, guidance mappings, action-to-clue links — so a generator can wire relationships **by rule** rather than by hand. `WireBlockers` is the clearest example: rather than authoring each fault's blocking list, it applies the rule that OS machine-wide blockers block everything including the network outage and the network outage blocks every non-blocker. Before this existed, the blocking field was always empty in practice, which meant the entire `Latent → Active` promotion branch had never once executed — a mechanic fully implemented and completely unreachable. Finally, regenerating is idempotent, so content evolves with the code that consumes it.
 
@@ -597,7 +603,7 @@ For an artefact of this size this is a genuine deficiency rather than a defensib
 
 ### 6.2 Cascade verification over all forty faults
 
-`SimulationSmokeTest` is the M1 done-criterion made executable. It builds a fresh simulated desktop, injects one authored fault, and prints the effective status and reason of all six modules — repeated for each of the forty faults, plus a healthy baseline, giving forty-one cascade readings. It requires no content assets at all, driving the Simulation layer directly, so it remains valid on a project where the generator has never been run.
+`SimulationSmokeTest` is the M1 done-criterion made executable. It builds a fresh simulated desktop, injects one authored fault, and prints the effective status and reason of all six modules — repeated for each of the forty faults, plus a healthy baseline, giving forty-one cascade readings. It requires no content assets at all, driving the Simulation layer directly, so it remains valid on a project where the generator has never been run. The two store-named faults (P6 wrong Wi-Fi, P12 mistyped record host) are injected as tokens and resolved against the generic site identity, so the harness stays store-agnostic in exactly the way the corpus now is (§5.3).
 
 The expected pattern is explicit and is the property most worth protecting:
 
@@ -619,7 +625,7 @@ Tracing every specified mechanism to implementing code yields the following:
 
 | Specified mechanism | Status | Evidence |
 |---|---|---|
-| Eight authored asset schemas (plus the store-name table) | Implemented | `Data/`, 668 lines |
+| Eight authored asset schemas (plus the store-name table) | Implemented | `Data/`, 710 lines |
 | Six simulated modules with local status | Implemented | `Simulation/Modules/Modules.cs` |
 | Blocked/Error cascade | Implemented | `DependencyGraph.EffectiveStatus` |
 | Machine-wide vs service-level OS faults | Implemented | `OsBlocking` predicate |
@@ -648,7 +654,7 @@ Tracing every specified mechanism to implementing code yields the following:
 | Voice (M7) | **Not implemented** | Descoped |
 | Trust trait affecting persona tone | **Not implemented** | Field exists, unused |
 
-Twenty-four of twenty-eight specified mechanisms are implemented and reachable; one is implemented but dormant; three are not implemented, two of which were explicitly descoped in advance. A separate discrepancy is recorded for completeness: the generated assets currently on disk (seven issues, fourteen actions, one article) predate the generator's extension to the full corpus, so the generator must be re-run to bring authored assets level with authoring code. The generator is the source of truth; the stale asset folder is an artefact of not having re-run it.
+Twenty-four of twenty-eight specified mechanisms are implemented and reachable; one is implemented but dormant; three are not implemented, two of which were explicitly descoped in advance. A separate discrepancy is recorded for completeness. The asset folder currently holds the full corpus (forty issues, fifty actions, forty articles, all wired into the content database), but it was generated *before* store names were made data-driven, so three files still carry hardcoded values: the template store's baseline names one shop's Wi-Fi and record host, and the P6 / P12 assets hold that shop's SSID and hostname as literals rather than as tokens. Until the generator is re-run, every rolled shop would come up on the template shop's network and P6 would be unfixable, because the SSID its resolution condition demands is not one the terminal is offered. The generator is the source of truth and one menu command reconciles it; recording the failure mode matters more than the fix, because it is the exact class of defect a data-driven design invites — code and content versioned separately, with only the content stale.
 
 ### 6.4 Discriminability audit
 
@@ -775,7 +781,7 @@ This project set out to build a simulation game that develops diagnostic reasoni
 
 **O1 (domain model) — achieved.** Six coupled modules propagate faults through an explicit dependency graph, with the Blocked/Error distinction correctly separating upstream-caused failures from local ones, and with two failure domains — per-staff login and database connectivity — deliberately placed outside the cascade. The distinction is verified live in the implementation for the cases most likely to violate it (§6.2).
 
-**O2 (fault taxonomy) — achieved.** Forty faults are authored under an explicit discriminability rule, each recording the fault it is confusable with and the evidence that separates them. The audit of §6.4 confirms every fault has an observable discriminator, including three pairs that produce identical error text from different causes.
+**O2 (fault taxonomy) — achieved.** Forty faults are authored under an explicit discriminability rule, each recording the fault it is confusable with and the evidence that separates them. The audit of §6.4 confirms every fault has an observable discriminator, including three pairs that produce identical error text from different causes. The rule was subsequently extended from faults to identity: the CRM directory is generated in families of mistakeable shop names rather than authored one record at a time, and each site's network identity is derived from its own store name, which is what makes a single authored fault a correct, fixable fault for every shop in the directory (§4.8, §5.3).
 
 **O3 (architecture) — achieved.** A four-layer architecture separates authored assets from runtime state; verdicts are pure functions of current state; Factory Method separates fault-selection sources from ticket assembly, demonstrated when recurrence was added as a decorator without modifying either existing factory.
 
@@ -795,26 +801,27 @@ The honest summary is that the artefact does what its specification says, that i
 
 1. **Automated test suite.** Assert the forty-one cascade readings against expected values rather than printing them; add unit tests for `ResolutionChecker`, `DependencyGraph`, `StaffLoginStatus`, `DbConnected`, and a statistical test that the refund/void case rate is approximately forty per cent. The layers are already plain C# and instantiable — the work is writing tests, not enabling them.
 2. **Activate recurrence.** Author faults whose `symptomCleared` and `rootCauseFixed` conditions genuinely differ, so that the game's only cross-night consequence — and the incident-versus-problem lesson it carries — actually fires (§6.6).
-3. **Regenerate content assets** so the committed corpus matches the generator (§6.3).
-4. **Multi-fault harness coverage.** Extend the smoke test to blocker-over-fault combinations and assert the `Latent → Active` promotion, the one mechanic whose correctness currently rests on manual play.
+3. **Regenerate content assets** so the committed corpus matches the generator — required, not cosmetic, since the store-named values in three assets predate tokenisation (§6.3). Regeneration reuses each existing asset file rather than recreating it, so scene references survive.
+4. **Assert the store-agnostic corpus.** A generator-side check that no authored fault value or resolution condition contains a literal SSID or record host would make the class of bug in §6.3 impossible to reintroduce: the rule is that store-named content must be a token.
+5. **Multi-fault harness coverage.** Extend the smoke test to blocker-over-fault combinations and assert the `Latent → Active` promotion, the one mechanic whose correctness currently rests on manual play.
 
 **Design work**
 
-5. **Hypothesis commitment.** Require the player to name a suspected module before running a diagnostic action, and reward early correct commitment. This closes the one requirement of Jonassen and Hung's (2006) architecture the artefact fails (§7.1) and simultaneously gives scoring something meaningful to measure.
-6. **Reasoning-quality scoring.** Extend the score breakdown to root-cause correctness, redundant actions, time taken, and temporary-versus-permanent repair, so that feedback reflects the skill the design claims to teach.
-7. **Debrief screen.** Garris, Ahlers and Driskell (2002) hold that game-based learning requires debriefing to convert experience into learning. An end-of-night review showing, per ticket, the actual fault, the actual dependency chain, and the shortest diagnostic path would add the reflective observation stage of Kolb's (1984) cycle, which the artefact currently omits.
+6. **Hypothesis commitment.** Require the player to name a suspected module before running a diagnostic action, and reward early correct commitment. This closes the one requirement of Jonassen and Hung's (2006) architecture the artefact fails (§7.1) and simultaneously gives scoring something meaningful to measure.
+7. **Reasoning-quality scoring.** Extend the score breakdown to root-cause correctness, redundant actions, time taken, and temporary-versus-permanent repair, so that feedback reflects the skill the design claims to teach.
+8. **Debrief screen.** Garris, Ahlers and Driskell (2002) hold that game-based learning requires debriefing to convert experience into learning. An end-of-night review showing, per ticket, the actual fault, the actual dependency chain, and the shortest diagnostic path would add the reflective observation stage of Kolb's (1984) cycle, which the artefact currently omits.
 
 **Empirical evaluation**
 
-8. **Adversarial containment study.** Recruit participants, including technically sophisticated ones, and instruct them explicitly to extract the root cause from the customer through any means, with the language model enabled. Record every leak. This converts §6.5 from an argument from construction into a measured result.
-9. **Learning-effect study.** A between-subjects design with a diagnostic pre-test, a fixed play period, an immediate post-test and a delayed retention test — measuring, in particular, transfer to fault *pairs* the participant did not encounter, since discriminability is the design's central claim. Wouters *et al.* (2013) supply comparable effect sizes for calibration and Sweetser and Wyeth's (2005) GameFlow model supplies an experience instrument.
-10. **Playability and pacing.** Structured observation with think-aloud protocol to test whether the interface is comprehensible without instruction and whether the five-tier progression matches actual competence growth.
+9. **Adversarial containment study.** Recruit participants, including technically sophisticated ones, and instruct them explicitly to extract the root cause from the customer through any means, with the language model enabled. Record every leak. This converts §6.5 from an argument from construction into a measured result.
+10. **Learning-effect study.** A between-subjects design with a diagnostic pre-test, a fixed play period, an immediate post-test and a delayed retention test — measuring, in particular, transfer to fault *pairs* the participant did not encounter, since discriminability is the design's central claim. Wouters *et al.* (2013) supply comparable effect sizes for calibration and Sweetser and Wyeth's (2005) GameFlow model supplies an experience instrument.
+11. **Playability and pacing.** Structured observation with think-aloud protocol to test whether the interface is comprehensible without instruction and whether the five-tier progression matches actual competence growth.
 
 **Extensions**
 
-11. **Voice (M7).** Attach speech recognition and synthesis to the already input-agnostic dialogue layer, which would substantially increase the fidelity of the "noisy human sensor" premise.
-12. **On-device intent classification.** Replace the keyword classifier with a small Sentis model to close the residual gap in §6.5, where an unanticipated phrasing of a technical question falls through to a confused reply.
-13. **Multi-lane and multi-store installations,** raising the ceiling on domain fidelity noted in §6.7.
+12. **Voice (M7).** Attach speech recognition and synthesis to the already input-agnostic dialogue layer, which would substantially increase the fidelity of the "noisy human sensor" premise.
+13. **On-device intent classification.** Replace the keyword classifier with a small Sentis model to close the residual gap in §6.5, where an unanticipated phrasing of a technical question falls through to a confused reply.
+14. **Multi-lane and multi-store installations,** raising the ceiling on domain fidelity noted in §6.7.
 
 ---
 
@@ -997,6 +1004,7 @@ Wouters, P., van Nimwegen, C., van Oostendorp, H. and van der Spek, E.D. (2013) 
 | `TicketManager` | Sole authority on call lifecycle status |
 | `ProblemGenerator` | Only place a problem instance is created |
 | `VerificationManager` | CRM lookup, click-to-compare, remote connection |
+| `StoreDirectoryFactory` | Only source of CRM accounts; only place a site identity is derived |
 | `DesktopManager` | Builds desktops; applies state changes; promotes latent faults |
 | `ActionManager` | All player actions on the simulated desktop |
 | `ResolutionChecker` | Sole authority on health verdicts (static, pure) |
@@ -1013,7 +1021,7 @@ Wouters, P., van Nimwegen, C., van Oostendorp, H. and van der Spek, E.D. (2013) 
 
 | Metric | Value |
 |---|---|
-| C# source | 7,298 lines across 50 files |
+| C# source | 7,619 lines across 50 files |
 | Design specification | 1,465 lines across 4 documents |
 | Web prototype (reference) | ≈ 2,700 lines (1,969 JavaScript) |
 | Authored faults | 40 (P1–P40) |
@@ -1021,6 +1029,8 @@ Wouters, P., van Nimwegen, C., van Oostendorp, H. and van der Spek, E.D. (2013) 
 | Desktop actions | 50 |
 | Simulated modules | 6 in cascade |
 | Simulated applications | 7 |
+| Confusable name families authored | 16 (6 rolled per campaign) |
+| CRM accounts per campaign | ≈ 20, in clusters of 3–4 |
 | Diagnostic action types | 17 |
 | Player intents | 14 |
 | Dialogue act kinds | 13 |
@@ -1029,7 +1039,8 @@ Wouters, P., van Nimwegen, C., van Oostendorp, H. and van der Spek, E.D. (2013) 
 | Services | 15 + 1 static |
 | Engine | Unity 6000.5.4f1, URP 17.5.0, uGUI 2.5.0, Input System 1.19.0, Sentis 2.6.1 |
 | Default language model | `llama3.2:3b` via local Ollama (opt-in) |
-| Shift length | 480 s real time = 20:00–04:00 in-game |
+| Shift length | 480 s real time = 20:00–04:00 in-game (8 in-game hours) |
+| Call volume | Configured rate: 0.25 calls/in-game hour +0.00625 per day, clamped 1–12 per night |
 | Campaign | 60 nights; ≥ 150 tickets to win; 3 complaints fail a night; 3 warnings end the campaign |
 
 ### Appendix E — Glossary
@@ -1047,6 +1058,9 @@ Wouters, P., van Nimwegen, C., van Oostendorp, H. and van der Spek, E.D. (2013) 
 | **Discriminability rule** | Every authored fault must be separable from a fault the player already knows |
 | **Misnaming** | Persona-driven substitution of correct device names with lay terms |
 | **Recurrence** | A symptom-cleared but root-cause-unrepaired fault returning on a later night |
+| **Name cluster** | A family of mistakeable first words ({Sunrise, Sunset, Sunnyside}) crossed with trades to build confusable CRM accounts |
+| **StoreIdentity** | A shop's derived site identity: Wi-Fi SSIDs and record-store host, computed from its name |
+| **Token** | A placeholder in authored content (`{SSID}`, `{DB_HOST}`) resolved against the calling shop's identity |
 
 ---
 

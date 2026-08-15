@@ -18,8 +18,6 @@ MonoBehaviour:
   phoneNumber: 555-0142
   address: 482 Elm St
   remoteId: 482 913 706
-  fixedPasscode: 
-  isRealAccount: 1
   machines:
   - machineId: REG-1
     osVersion: Win 10 IoT
@@ -37,7 +35,7 @@ MonoBehaviour:
       osUserAccount: Admin
       osPowerPlan: AlwaysOn
       networkIsOnline: true
-      networkSsid: SunriseDiner-Main
+      networkSsid: '{SSID}'
       networkSignalStrength: Good
       networkDnsServer: 192.168.1.1
       networkFirewallBlocking: false
@@ -45,7 +43,7 @@ MonoBehaviour:
       posStaffRole: Sale
       posStaffTerminal: REG-1
       posTerminalSynced: true
-      posDbHost: db.sunrisediner.local
+      posDbHost: '{DB_HOST}'
       posRegisteredTerminalIp: 192.168.1.50
       posLicenseState: Valid
       posOfflineMode: false
@@ -54,7 +52,7 @@ MonoBehaviour:
       posPriceSync: Current
       posPrinterVisible: true
       posMinTerminalFirmware: 4.0
-      terminalWifiNetwork: SunriseDiner-Main
+      terminalWifiNetwork: '{SSID}'
       terminalMachineId: REG-1
       terminalPairingState: Paired
       terminalFirmwareVersion: 4.2

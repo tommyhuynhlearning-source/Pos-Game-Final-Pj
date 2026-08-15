@@ -26,6 +26,21 @@ namespace POSTechSupport.AI
         /// <summary>What the caller BELIEVES, which may be wrong (persona.memoryAccuracy).</summary>
         public string statedStoreName, statedOwnerName, statedMachineId;
 
+        /// <summary>
+        /// What is actually true of their own shop. Not a leak of anything technical: these are the
+        /// sign over the door, the name on the licence and the sticker on the register — things the
+        /// caller can walk over and READ when the agent asks them to double-check. Without them a
+        /// misremembering caller would be a dead end, since nothing else in the game can correct them.
+        /// </summary>
+        public string trueStoreName, trueOwnerName, trueMachineId;
+
+        /// <summary>
+        /// The remote session code showing on THEIR screen. The customer is the only source of it —
+        /// nothing on file has it — so relaying it is an ordinary thing a shopkeeper can do, and the
+        /// agent still has to work out which device to point it at.
+        /// </summary>
+        public string sessionCode;
+
         /// <summary>They legitimately know whether the owner asked them to call. Not a technical fact.</summary>
         public bool callerAuthorized;
         public bool isRefundVoidCase;
@@ -44,6 +59,10 @@ namespace POSTechSupport.AI
                 statedStoreName = p.persona.statedStoreName,
                 statedOwnerName = p.persona.statedOwnerName,
                 statedMachineId = p.persona.statedMachineId,
+                trueStoreName = p.store?.storeName,
+                trueOwnerName = p.store?.ownerName,
+                trueMachineId = p.store?.MachineId,
+                sessionCode = p.ticket.remoteConnect.passcode,
                 callerAuthorized = p.ticket.authorization.callerAuthorized,
                 isRefundVoidCase = p.ticket.authorization.isRefundVoidCase,
             };

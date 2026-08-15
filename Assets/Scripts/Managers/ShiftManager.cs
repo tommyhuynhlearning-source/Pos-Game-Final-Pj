@@ -52,7 +52,7 @@ namespace POSTechSupport.Managers
             mailbox.ResetNight();
             tickets.ResetNight();
 
-            int target = ProblemGenerator.TicketCountForDay(day);
+            int target = ProblemGenerator.TicketCountForDay(day, config);
             var fractions = new List<float>();
             for (int i = 0; i < target; i++) fractions.Add(SampleTempo());
             fractions.Sort();
@@ -83,9 +83,14 @@ namespace POSTechSupport.Managers
             while (night.spawnedCount < night.spawnTimes.Count &&
                    night.elapsed >= night.spawnTimes[night.spawnedCount])
             {
-                tickets.Enqueue(generator.GenerateAuto(night.day));
+                tickets.Enqueue(generator.GenerateAuto(night.day), night.elapsed, config.queuePatienceSec);
                 night.spawnedCount++;
             }
+
+            // Before promoting: callers who ran out of patience leave the line (another tech takes them
+            // if the agent is busy, otherwise it is a real missed call). At a high calls-per-hour this is
+            // what keeps the queue from growing forever.
+            tickets.DrainImpatientQueue(night.elapsed);
 
             var newlyRinging = tickets.TryPromote(night.elapsed, config.ringTimeoutSec);
             if (newlyRinging != null) OnIncomingCall?.Invoke(newlyRinging);

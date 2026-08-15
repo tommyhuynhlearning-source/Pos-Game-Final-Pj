@@ -39,6 +39,17 @@ namespace POSTechSupport.Managers
         public void AskMachineId(ProblemInstance p) =>
             dialogue.HandleIntent(p, PlayerIntent.AskMachineId, "Which register is it?");
 
+        /// <summary>
+        /// Doubt the last thing they said and make them go and look it up. The only way back from a
+        /// caller who misremembers their own shop — see DialoguePolicy.DoubleCheckAnswer.
+        /// </summary>
+        public void AskDoubleCheck(ProblemInstance p) =>
+            dialogue.HandleIntent(p, PlayerIntent.AskDoubleCheck, "Are you sure? Could you double-check that for me?");
+
+        /// <summary>The session passcode is on the customer's screen and nowhere else — they read it out.</summary>
+        public void AskSessionCode(ProblemInstance p) =>
+            dialogue.HandleIntent(p, PlayerIntent.AskSessionCode, "Can you read me the code on your screen?");
+
         public void AskAuthorized(ProblemInstance p) =>
             dialogue.HandleIntent(p, PlayerIntent.AskAuthorized, "Did the owner authorize this?");
 

@@ -136,10 +136,114 @@ namespace POSTechSupport.UI
             return h;
         }
 
+        /// <summary>
+        /// Wrapping row of same-sized cells. A HorizontalLayoutGroup cannot wrap, so a long strip of
+        /// buttons gets squeezed until each label breaks one character per line — use this instead when
+        /// the child count is not small and fixed.
+        /// </summary>
+        public static GridLayoutGroup Grid(GameObject go, Vector2 cell, float spacing = 4, RectOffset padding = null)
+        {
+            var g = go.GetComponent<GridLayoutGroup>() ?? go.AddComponent<GridLayoutGroup>();
+            g.cellSize = cell;
+            g.spacing = new Vector2(spacing, spacing);
+            g.padding = padding ?? new RectOffset(0, 0, 0, 0);
+            g.startCorner = GridLayoutGroup.Corner.UpperLeft;
+            g.startAxis = GridLayoutGroup.Axis.Horizontal;
+            g.childAlignment = TextAnchor.UpperLeft;
+            g.constraint = GridLayoutGroup.Constraint.Flexible;
+            return g;
+        }
+
+        /// <summary>
+        /// Turns <paramref name="go"/> into a vertically scrolling viewport and returns the CONTENT
+        /// transform that dynamic children must be parented to. Anything whose length is decided at
+        /// runtime — the chat log, CRM record, app body, mailbox — belongs in one of these: a plain panel
+        /// with a VerticalLayoutGroup keeps stacking children past its own edge and draws them over
+        /// whatever sits below, which is exactly the "extra components" overlap.
+        /// </summary>
+        public static ScrollRect ScrollView(GameObject go, out RectTransform content,
+            float spacing = 4, RectOffset padding = null, bool scrollbar = true)
+        {
+            var scroll = go.GetComponent<ScrollRect>() ?? go.AddComponent<ScrollRect>();
+            // Clip to the viewport rect. RectMask2D (not Mask) — no extra material, no stencil buffer.
+            if (go.GetComponent<RectMask2D>() == null) go.AddComponent<RectMask2D>();
+
+            var contentGo = Node("Content", go.transform);
+            content = Rect(contentGo);
+            content.anchorMin = new Vector2(0f, 1f);      // full width, pinned to the top edge…
+            content.anchorMax = new Vector2(1f, 1f);
+            content.pivot = new Vector2(0.5f, 1f);
+            content.sizeDelta = Vector2.zero;             // …height comes from the fitter below
+            content.anchoredPosition = Vector2.zero;
+
+            VList(contentGo, spacing, padding ?? new RectOffset(6, 14, 6, 6));
+            var fitter = contentGo.GetComponent<ContentSizeFitter>() ?? contentGo.AddComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            scroll.content = content;
+            scroll.viewport = null;                      // null => the ScrollRect's own rect is the viewport
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 24f;
+            if (scrollbar)
+            {
+                scroll.verticalScrollbar = VScrollbar(go.transform);
+                scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+            }
+            return scroll;
+        }
+
+        /// <summary>Thin right-edge scrollbar — the affordance that tells the player a list scrolls at all.</summary>
+        private static Scrollbar VScrollbar(Transform parent)
+        {
+            var track = Box("Scrollbar", parent, new Color(0f, 0f, 0f, 0.25f));
+            var rt = track.rectTransform;
+            rt.anchorMin = new Vector2(1f, 0f);
+            rt.anchorMax = Vector2.one;
+            rt.pivot = Vector2.one;
+            rt.sizeDelta = new Vector2(8f, 0f);
+            rt.anchoredPosition = Vector2.zero;
+
+            var sb = track.gameObject.AddComponent<Scrollbar>();
+            var area = Node("SlidingArea", track.transform);
+            Stretch(Rect(area));
+            var handle = Box("Handle", area.transform, new Color(0.42f, 0.44f, 0.5f, 1f));
+            Stretch(handle.rectTransform);
+
+            sb.handleRect = handle.rectTransform;
+            sb.targetGraphic = handle;
+            sb.direction = Scrollbar.Direction.BottomToTop;
+            return sb;
+        }
+
         public static LayoutElement MinHeight(GameObject go, float h)
         {
             var le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();
             le.minHeight = h;
+            return le;
+        }
+
+        /// <summary>
+        /// Pins a child's height so a vertical layout can neither stretch it nor let it overflow. A row
+        /// that only has a MINIMUM grows to share out spare space, which looks fine until one more row is
+        /// added and the whole stack runs off the bottom of its panel — over whatever is underneath.
+        /// </summary>
+        public static LayoutElement FixedHeight(GameObject go, float h)
+        {
+            var le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();
+            le.minHeight = h;
+            le.preferredHeight = h;
+            le.flexibleHeight = 0;
+            return le;
+        }
+
+        /// <summary>Floor on a child's width, so a horizontal layout cannot crush its label.</summary>
+        public static LayoutElement MinWidth(GameObject go, float w)
+        {
+            var le = go.GetComponent<LayoutElement>() ?? go.AddComponent<LayoutElement>();
+            le.minWidth = w;
             return le;
         }
 

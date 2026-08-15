@@ -71,6 +71,11 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  callsPerHour: 0.25
+  callsPerHourPerDay: 0.00625
+  minCallsPerNight: 1
+  maxCallsPerNight: 120
+  queuePatienceSec: 15
   useLlm: 0
   llmEndpoint: http://localhost:11434/api/generate
   llmModel: llama3.2:3b

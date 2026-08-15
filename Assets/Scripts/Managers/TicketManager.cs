@@ -19,10 +19,36 @@ namespace POSTechSupport.Managers
         public ProblemInstance active;
         public readonly List<ProblemInstance> history = new();
 
-        public void Enqueue(ProblemInstance p)
+        public void Enqueue(ProblemInstance p, float elapsed = 0f, float patienceSec = float.MaxValue)
         {
             p.ticket.lifecycle = CallLifecycleStatus.Queued;
+            p.ticket.queueDeadline = patienceSec >= float.MaxValue ? float.MaxValue : elapsed + patienceSec;
             queue.Add(p);
+        }
+
+        /// <summary>
+        /// Callers don't wait forever. Who carries the blame depends on whether the one line was busy:
+        /// a call was active or ringing → a colleague picks this one up (neutral, no complaint); the
+        /// agent was sitting idle → a genuine missed call, one strike.
+        ///
+        /// The distinction is the whole point at a real call-centre volume: a strike must mean "a call
+        /// rang at you and you ignored it" (ring timeout / decline), never "more people phoned than one
+        /// person can talk to". Returns how many left the queue, so the UI can refresh.
+        /// </summary>
+        public int DrainImpatientQueue(float elapsed)
+        {
+            int left = 0;
+            bool lineBusy = active != null || ringing != null;
+            for (int i = queue.Count - 1; i >= 0; i--)
+            {
+                var p = queue[i];
+                if (elapsed < p.ticket.queueDeadline) continue;
+                queue.RemoveAt(i);
+                if (lineBusy) RouteToOtherTech(p);
+                else MissQueued(p, "gave up waiting while the line sat idle");
+                left++;
+            }
+            return left;
         }
 
         /// <summary>Promote the next queued call to ringing when the line is free. Returns it, or null.</summary>
@@ -59,10 +85,35 @@ namespace POSTechSupport.Managers
             if (ringing == null) return;
             var p = ringing;
             ringing = null;
+            MissQueued(p, reason);
+        }
+
+        /// <summary>A call the player could have taken and didn't — one strike.</summary>
+        private void MissQueued(ProblemInstance p, string reason)
+        {
             p.ticket.lifecycle = CallLifecycleStatus.Missed;
             mailbox.FileComplaint(HarmType.MissedCall, p.ticket.ticketId,
                 $"Missed call from {p.store.storeName} ({reason}) — customer complaint filed.");
             history.Add(p);
+        }
+
+        /// <summary>
+        /// Someone else's ticket now. Neutral by design: it never happened because the player did
+        /// something wrong, so it earns nothing and costs nothing.
+        /// </summary>
+        private void RouteToOtherTech(ProblemInstance p)
+        {
+            p.ticket.lifecycle = CallLifecycleStatus.HandledByOtherTech;
+            p.ticket.closedOutcome = ClosedOutcome.None;
+            history.Add(p);
+        }
+
+        /// <summary>Counts by lifecycle over the night's history — for the HUD and the end-of-night card.</summary>
+        public int CountBy(CallLifecycleStatus lifecycle)
+        {
+            int n = 0;
+            foreach (var p in history) if (p.ticket.lifecycle == lifecycle) n++;
+            return n;
         }
 
         /// <summary>
@@ -102,16 +153,17 @@ namespace POSTechSupport.Managers
             return outcome;
         }
 
-        /// <summary>End-of-night cleanup: close ringing/active/queue that were left dangling.</summary>
+        /// <summary>
+        /// End-of-night cleanup. A call still ringing or waiting when the clock runs out is NOT a missed
+        /// call — the shift is over and the next tech inherits it. Only the call the player was holding
+        /// open gets judged, because that one they really did cut off.
+        /// </summary>
         public void FlushRemaining()
         {
             if (ringing != null)
             {
                 var p = ringing; ringing = null;
-                p.ticket.lifecycle = CallLifecycleStatus.Missed;
-                mailbox.FileComplaint(HarmType.MissedCall, p.ticket.ticketId,
-                    $"Missed call from {p.store.storeName} (shift ended before it was answered).");
-                history.Add(p);
+                RouteToOtherTech(p);
             }
             if (active != null)
             {
@@ -131,13 +183,7 @@ namespace POSTechSupport.Managers
                 }
                 active = null;
             }
-            foreach (var p in queue)
-            {
-                p.ticket.lifecycle = CallLifecycleStatus.Missed;
-                mailbox.FileComplaint(HarmType.MissedCall, p.ticket.ticketId,
-                    $"Missed call from {p.store.storeName} (never reached before shift ended).");
-                history.Add(p);
-            }
+            foreach (var p in queue) RouteToOtherTech(p);
             queue.Clear();
         }
 

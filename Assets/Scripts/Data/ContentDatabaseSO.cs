@@ -15,10 +15,8 @@ namespace POSTechSupport.Data
 
         [Header("Store / CRM")]
         public StoreProfileSO realStore;               // template account: supplies the machine baseline
-        public StoreProfileSO[] crmDecoys;             // only used when crmClusterCount = 0 (scripted directory)
 
-        [Tooltip("Confusable name families to roll into the CRM directory (each yields 2–4 accounts). " +
-                 "0 = use the authored realStore + crmDecoys instead.")]
+        [Tooltip("Confusable name families to roll into the CRM directory (each yields 2–4 accounts).")]
         public int crmClusterCount = 6;
         public StoreNameTableSO storeNames;            // word lists the directory is combined from
 
@@ -34,18 +32,5 @@ namespace POSTechSupport.Data
 
         public IssueSO FindIssue(string issueId) =>
             allIssues?.FirstOrDefault(i => i != null && i.issueId == issueId);
-
-        /// <summary>
-        /// The AUTHORED directory (real record first, then decoys), as runtime records. Only the
-        /// fallback path uses this; normally StoreDirectoryFactory rolls the directory from
-        /// <see cref="storeNames"/> so a different shop is on the phone each call.
-        /// </summary>
-        public System.Collections.Generic.List<StoreRecord> CrmDirectory()
-        {
-            var list = new System.Collections.Generic.List<StoreRecord>();
-            if (realStore != null) list.Add(StoreRecord.From(realStore));
-            if (crmDecoys != null) list.AddRange(crmDecoys.Where(s => s != null).Select(StoreRecord.From));
-            return list;
-        }
     }
 }

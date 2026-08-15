@@ -32,6 +32,7 @@ namespace POSTechSupport.UI
         [Header("Night")]
         [SerializeField] private Text nightClock, nightCounts, callLogText;
         [SerializeField] private Transform devRow;
+        [SerializeField] private Button toggleDevBtn;
 
         [Header("Incoming call")]
         [SerializeField] private Text incomingCaller;
@@ -39,9 +40,10 @@ namespace POSTechSupport.UI
         [SerializeField] private Button answerBtn, declineBtn;
 
         [Header("Ticket — chat")]
+        [SerializeField] private ScrollRect chatScroll;
         [SerializeField] private Text chatText, ticketHeader;
         [SerializeField] private Button askSymptom, askStore, askOwner, askMachine, askAuth, askSms;
-        [SerializeField] private Button askWhenStarted, askWhatTried;
+        [SerializeField] private Button askWhenStarted, askWhatTried, askSure, askCode;
         [SerializeField] private Transform customerFacts;
         [SerializeField] private InputField chatInput;      // M4 — free-text; quick-asks are shortcuts
         [SerializeField] private Button chatSendBtn;
@@ -62,10 +64,13 @@ namespace POSTechSupport.UI
         [SerializeField] private GameObject guidancePanel;
         [SerializeField] private Text guidanceText;
 
-        [Header("Remote desktop")]
-        [SerializeField] private Transform appIcons, appBody, appTabRow;
-        [SerializeField] private Text appTitle;
-        [SerializeField] private Button closeRemoteBtn, closeAppBtn;
+        [Header("Remote desktop — the customer's Windows XP session")]
+        [SerializeField] private Transform desktopIcons, appBody, appTabRow, taskbarApps, startMenuList;
+        [SerializeField] private RectTransform appWindowRect, desktopArea;
+        [SerializeField] private GameObject startMenu;
+        [SerializeField] private Text appTitle, trayClock, connBarLabel;
+        [SerializeField] private Image appTitleIcon;
+        [SerializeField] private Button closeRemoteBtn, closeAppBtn, minimiseAppBtn, maximiseAppBtn, startBtn;
 
         [Header("Confirm dialog (risky fix / unverified refund-void)")]
         [SerializeField] private GameObject overlayConfirm;
@@ -89,6 +94,16 @@ namespace POSTechSupport.UI
 
         private ProblemInstance Active => game != null ? game.Tickets?.active : null;
         private string openAppKey;
+
+        // XP shell state: the window remembers where it was before it was maximised, and the taskbar
+        // button for the open app doubles as the restore target once it is minimised.
+        private bool appMaximised;
+        private Vector2 restoreSize, restorePos;
+
+        // Chat auto-follow: only snap to the newest line when one is actually added, so scrolling back
+        // through the call survives the every-frame RefreshChatText.
+        private int lastChatCount = -1;
+        private bool stickChatToBottom;
 
         private static readonly string[] AppKeys = { "system", "network", "possoftware", "terminal", "printer", "devicemanager", "cashdrawer" };
         private static readonly Dictionary<string, (string title, ModuleType mod)> AppDefs = new()
@@ -128,16 +143,21 @@ namespace POSTechSupport.UI
             ApplyOSFontToAllTexts();
         }
 
+        /// <summary>
+        /// The scene is built with whatever font the editor machine had; this re-resolves it against the
+        /// player's OS so Vietnamese diacritics survive. The XP desktop is skipped on purpose — its text
+        /// is Tahoma (see XPFactory), and stamping the technician UI's font over it would flatten the one
+        /// thing that makes the customer's machine look like a different computer.
+        /// </summary>
         private void ApplyOSFontToAllTexts()
         {
             var texts = FindObjectsByType<Text>(FindObjectsInactive.Include);
             var targetFont = UIFactory.Font;
+            var xpFont = XPFactory.Font;
             foreach (var t in texts)
             {
-                if (t != null)
-                {
-                    t.font = targetFont;
-                }
+                if (t == null || t.font == xpFont) continue;
+                t.font = targetFont;
             }
         }
 
@@ -176,6 +196,20 @@ namespace POSTechSupport.UI
                 RenderTicketStatus();
                 RefreshChatText();   // picks up a line the LLM rewrote after it was posted
             }
+            if (overlayRemote != null && overlayRemote.activeSelf) RenderTrayClock();
+        }
+
+        /// <summary>
+        /// Content height is one layout pass behind the text that was just set, so the scroll has to be
+        /// pinned after the canvas rebuild — not inside RefreshChatText.
+        /// </summary>
+        private void LateUpdate()
+        {
+            if (!stickChatToBottom) return;
+            stickChatToBottom = false;
+            if (chatScroll == null) return;
+            Canvas.ForceUpdateCanvases();
+            chatScroll.verticalNormalizedPosition = 0f;
         }
 
         // ---------------------------------------------------------------- static wiring
@@ -187,12 +221,14 @@ namespace POSTechSupport.UI
             Wire(declineBtn, () => { game.DeclineCall(); Hide(overlayIncoming); });
             Wire(hangUpBtn, OnHangUp);
             Wire(openRemoteBtn, OpenRemoteDesktop);
-            Wire(closeRemoteBtn, () => Hide(overlayRemote));
-            Wire(closeAppBtn, () =>
+            Wire(closeRemoteBtn, CloseRemoteSession);
+            Wire(closeAppBtn, CloseApp);
+            Wire(minimiseAppBtn, MinimiseApp);
+            Wire(maximiseAppBtn, ToggleMaximiseApp);
+            Wire(startBtn, ToggleStartMenu);
+            Wire(toggleDevBtn, () =>
             {
-                Hide(appWindow);
-                openAppKey = null;
-                if (Active != null) Active.ticket.openAppKey = null;   // appTabs survive; the open app doesn't
+                if (devRow != null) devRow.gameObject.SetActive(!devRow.gameObject.activeSelf);
             });
             Wire(continueBtn, () => { ShowScreen(screenHub); RenderHub(); });
             Wire(gameOverRestart, () => { game.StartNewCampaign(); ShowScreen(screenHub); RenderHub(); });
@@ -206,6 +242,8 @@ namespace POSTechSupport.UI
             Wire(askWhenStarted, () => { game.Comms.AskWhenStarted(Active); RenderTicket(); });
             Wire(askWhatTried, () => { game.Comms.AskWhatTried(Active); RenderTicket(); });
             Wire(askSms, () => { game.Comms.RequestSmsReceipt(Active); RenderTicket(); });
+            Wire(askSure, () => { game.Comms.AskDoubleCheck(Active); RenderTicket(); });
+            Wire(askCode, () => { game.Comms.AskSessionCode(Active); RenderTicket(); });
             Wire(chatSendBtn, SendTypedChat);
             if (chatInput != null) chatInput.onSubmit.AddListener(_ => SendTypedChat());   // Enter sends
 
@@ -248,16 +286,25 @@ namespace POSTechSupport.UI
         {
             var shift = game.Shift;
             if (nightClock != null) nightClock.text = $"🕗 {shift.ClockLabel()}";
+            var tickets = game.Tickets;
             if (nightCounts != null)
-                nightCounts.text = $"Day {shift.night.day}   |   Calls: {shift.night.spawnedCount}   |   " +
-                                   $"Waiting: {game.Tickets.queue.Count + (game.Tickets.ringing != null ? 1 : 0)}   |   " +
-                                   $"Strikes: {game.Mailbox.StrikeCount()}/{game.Campaign.config.strikesPerNightFail}";
+                nightCounts.text =
+                    $"Day {shift.night.day}   |   Calls in: {shift.night.spawnedCount}/{shift.night.ticketsTarget}   |   " +
+                    $"On hold: {tickets.queue.Count}   |   Strikes: {game.Mailbox.StrikeCount()}/{game.Campaign.config.strikesPerNightFail}\n" +
+                    $"Handled: {tickets.CountBy(CallLifecycleStatus.Closed)}   |   " +
+                    $"<color=#cc4444>Missed: {tickets.CountBy(CallLifecycleStatus.Missed)}</color>   |   " +
+                    $"Other tech: {tickets.CountBy(CallLifecycleStatus.HandledByOtherTech)}";
             if (callLogText != null)
             {
                 var sb = new System.Text.StringBuilder();
-                foreach (var p in game.Tickets.history)
-                    sb.AppendLine($"{p.ticket.ticketId}  {p.store.storeName}  —  {p.ticket.lifecycle}/{p.ticket.closedOutcome}");
-                callLogText.text = game.Tickets.history.Count == 0 ? "Waiting for the phone to ring…" : sb.ToString();
+                // Newest first: on a busy night the log is long, and the last thing that happened is the
+                // thing you want to see without scrolling.
+                for (int i = tickets.history.Count - 1; i >= 0; i--)
+                {
+                    var p = tickets.history[i];
+                    sb.AppendLine($"{p.ticket.ticketId}  {p.store.storeName}  —  {CallOutcomeLabel(p)}");
+                }
+                callLogText.text = tickets.history.Count == 0 ? "Waiting for the phone to ring…" : sb.ToString();
             }
         }
 
@@ -292,7 +339,8 @@ namespace POSTechSupport.UI
             if (remotePass != null) remotePass.text = "";
             if (connectStatus != null) connectStatus.text = "";
             HideAll(overlayRemote, appWindow, overlayKb, overlayConfirm);
-            openAppKey = null;
+            ResetRemoteShell();
+            lastChatCount = -1;   // new call → start the chat view at its newest line
             Show(overlayTicket);
             RenderTicket();
         }
@@ -326,6 +374,11 @@ namespace POSTechSupport.UI
         private void RefreshChatText()
         {
             if (chatText == null || Active == null) return;
+            if (Active.ticket.chat.Count != lastChatCount)
+            {
+                lastChatCount = Active.ticket.chat.Count;
+                stickChatToBottom = true;     // a new line arrived — follow it (LateUpdate, after layout)
+            }
             var sb = new System.Text.StringBuilder();
             foreach (var line in Active.ticket.chat)
             {
@@ -350,12 +403,14 @@ namespace POSTechSupport.UI
             if (customerFacts != null)
             {
                 UIFactory.Clear(customerFacts);
-                var seen = new HashSet<FactType>();
+                // LATEST wins, not first: once the caller has gone and checked, the chip has to hold what
+                // they read out, or the player would be comparing a value the customer has retracted.
+                var latest = new Dictionary<FactType, FactRef>();
                 foreach (var line in t.chat)
+                    if (line.fact != null) latest[line.fact.type] = line.fact;
+
+                foreach (var fact in latest.Values)
                 {
-                    if (line.fact == null || seen.Contains(line.fact.type)) continue;
-                    seen.Add(line.fact.type);
-                    var fact = line.fact;
                     var b = UIFactory.Button($"chatfact_{fact.type}", customerFacts,
                         $"🔍 {FactLabel(fact.type)}: {fact.value}", UIFactory.Panel, 13);
                     UIFactory.MinHeight(b.gameObject, 26);
@@ -367,6 +422,7 @@ namespace POSTechSupport.UI
             SetInteractable(askSymptom, !hung); SetInteractable(askStore, !hung); SetInteractable(askOwner, !hung);
             SetInteractable(askMachine, !hung); SetInteractable(askAuth, !hung); SetInteractable(askSms, !hung);
             SetInteractable(askWhenStarted, !hung); SetInteractable(askWhatTried, !hung);
+            SetInteractable(askSure, !hung); SetInteractable(askCode, !hung);
             SetInteractable(chatSendBtn, !hung);
             if (chatInput != null) chatInput.interactable = !hung;
         }
@@ -394,7 +450,7 @@ namespace POSTechSupport.UI
             {
                 var cmp = t.compare;
                 if (cmp.result != CompareResult.None)
-                    compareStatus.text = $"{(cmp.result == CompareResult.Match ? "✓ MATCH" : "✗ MISMATCH")} — {FactLabel(cmp.resultType)}: CRM \"{cmp.crmValue}\" vs customer \"{cmp.chatValue}\"";
+                    compareStatus.text = CompareLine(cmp);
                 else if (cmp.pending != null)
                     compareStatus.text = $"🔍 Selected {FactLabel(cmp.pendingType)}: \"{cmp.pending.value}\" — now click its counterpart.";
                 else
@@ -411,7 +467,7 @@ namespace POSTechSupport.UI
                     var b = UIFactory.Button($"crm_{i}", crmResults, $"{rec.storeName}  ({rec.storeId} — {rec.address})",
                         t.crmLookup.selectedIndex == i ? UIFactory.Accent : UIFactory.Panel, 13);
                     UIFactory.MinHeight(b.gameObject, 28);
-                    b.onClick.AddListener(() => { game.Verification.SelectCrmResult(Active, idx); RenderCrm(); });
+                    b.onClick.AddListener(() => { game.Verification.SelectCrmResult(Active, idx); FillCredentials(rec); ClearConnectFailure(); RenderCrm(); });
                 }
                 if (t.crmLookup.results.Count == 0 && !string.IsNullOrEmpty(t.crmLookup.query))
                     UIFactory.Label("nomatch", crmResults, "No matches.", 13, TextAnchor.MiddleLeft);
@@ -424,16 +480,41 @@ namespace POSTechSupport.UI
                 if (sel >= 0 && sel < t.crmLookup.results.Count)
                 {
                     var rec = t.crmLookup.results[sel];
-                    string passcode = Active.IsCallerRecord(rec) ? t.remoteConnect.passcode : rec.fixedPasscode;
                     UIFactory.Label("rec_id", crmRecord, $"Store ID: {rec.storeId}", 13, TextAnchor.MiddleLeft);
                     CrmFactButton(rec, FactType.StoreName, $"Store Name: {rec.storeName}", rec.storeName);
                     UIFactory.Label("rec_addr", crmRecord, $"Address: {rec.address}", 13, TextAnchor.MiddleLeft);
                     CrmFactButton(rec, FactType.OwnerName, $"Owner: {rec.ownerName}", rec.ownerName);
                     CrmFactButton(rec, FactType.MachineId, $"Machine on file: {(rec.machines != null && rec.machines.Length > 0 ? rec.machines[0].machineId : "?")}",
                         rec.machines != null && rec.machines.Length > 0 ? rec.machines[0].machineId : "");
-                    UIFactory.Label("rec_remote", crmRecord, $"<b>Remote credentials</b>\nRemote ID: {rec.remoteId}\nPasscode: {passcode}", 13, TextAnchor.MiddleLeft);
+                    // No passcode here, ever. The session code lives on the customer's screen — printing
+                    // one on file would be printing a credential the connect then refuses.
+                    UIFactory.Label("rec_remote", crmRecord,
+                        $"<b>Remote access</b>\nDevice ID: {rec.remoteId}\nSession passcode: ask the customer to read it out.",
+                        13, TextAnchor.MiddleLeft);
                 }
             }
+        }
+
+        /// <summary>
+        /// A compare only ever proves that the record agrees with what the customer SAID — and what they
+        /// said may be the shop two doors down. Reporting that as a bare "✓ MATCH" hands the player a
+        /// green tick for the wrong account and then fails the connect on them, which reads as the game
+        /// lying rather than as the trap it is. So the line always names its source, and says plainly
+        /// when that source is a memory nobody has checked yet.
+        /// </summary>
+        private string CompareLine(CompareState cmp)
+        {
+            bool checkedIt = Active.ticket.dialogue.reChecked.Contains(cmp.resultType);
+            string what = FactLabel(cmp.resultType);
+
+            if (cmp.result == CompareResult.Match)
+                return checkedIt
+                    ? $"✓ MATCH — {what}: \"{cmp.crmValue}\", and the customer checked it. Right account."
+                    : $"✓ Agrees with what the customer SAID — {what}: \"{cmp.crmValue}\".\nThey're going from memory. Ask them to double-check.";
+
+            return checkedIt
+                ? $"✗ MISMATCH — {what}: CRM \"{cmp.crmValue}\" vs \"{cmp.chatValue}\", which they checked. Wrong record."
+                : $"✗ MISMATCH — {what}: CRM \"{cmp.crmValue}\" vs customer \"{cmp.chatValue}\".\nWrong record, or just their memory — ask them to double-check.";
         }
 
         private void CrmFactButton(StoreRecord rec, FactType type, string label, string value)
@@ -443,17 +524,46 @@ namespace POSTechSupport.UI
             b.onClick.AddListener(() => { game.Verification.CompareClick(Active, CompareSource.Crm, type, value); RenderCrm(); });
         }
 
+        /// <summary>
+        /// Picking a record copies its device ID into the connect form, the way an agent would paste it
+        /// across. Retyping a nine-digit ID by hand tests typing, not verifying — one transposed digit
+        /// and the player gets the same failure as picking the wrong shop, with no way to tell them
+        /// apart. The decision this screen is about is WHICH RECORD. The passcode box is left alone:
+        /// nothing on file can fill it, it comes from the customer.
+        /// </summary>
+        private void FillCredentials(StoreRecord rec)
+        {
+            if (remoteId != null) remoteId.text = rec.remoteId ?? "";
+        }
+
         private void RenderRemotePanel()
         {
-            if (remoteId != null && string.IsNullOrEmpty(remoteId.text)) { /* leave for player */ }
             SetInteractable(openRemoteBtn, Active.ticket.remoteConnect.connected);
+        }
+
+        /// <summary>
+        /// A new CRM pick puts different credentials on screen, so the previous failure no longer refers
+        /// to anything. A session that IS connected survives it — browsing the CRM never drops a call.
+        /// </summary>
+        private void ClearConnectFailure()
+        {
+            if (connectStatus != null && !Active.ticket.remoteConnect.connected) connectStatus.text = "";
         }
 
         private void OnConnect()
         {
             bool ok = game.Verification.TryRemoteConnect(Active, remoteId != null ? remoteId.text : "", remotePass != null ? remotePass.text : "");
             if (connectStatus != null)
-                connectStatus.text = ok ? "✓ Connected." : "Connection failed — wrong Remote ID/passcode. Did you pick the right CRM record?";
+                connectStatus.text = Active.ticket.remoteConnect.outcome switch
+                {
+                    RemoteConnectOutcome.Connected => "✓ Connected.",
+                    RemoteConnectOutcome.PasscodeRejected =>
+                        "Passcode rejected. Ask the customer to read the code on their screen.",
+                    RemoteConnectOutcome.NoSession => Active.ticket.remoteConnect.passcodeMatched
+                        ? "That code is valid — but not for this device. Wrong shop's machine?"
+                        : "That device isn't waiting for a connection. Is it the machine that called you?",
+                    _ => "No device found with that ID — check the digits.",
+                };
             SetInteractable(openRemoteBtn, ok);
             if (ok) OpenRemoteDesktop();
         }
@@ -480,24 +590,87 @@ namespace POSTechSupport.UI
         {
             game.HangUp();
             HideAll(overlayRemote, appWindow, overlayTicket, overlayKb, overlayConfirm);
-            openAppKey = null;
+            ResetRemoteShell();
             pendingConfirm = null;
             RenderNightHud();
         }
 
-        // ---------------------------------------------------------------- remote desktop
+        // ---------------------------------------------------------------- remote desktop (Windows XP)
+
+        /// <summary>
+        /// Drops the player into the customer's XP session. The desktop is built once and reused for every
+        /// call — only the connection bar caption and the taskbar change per ticket.
+        /// </summary>
         private void OpenRemoteDesktop()
         {
             if (Active == null || !Active.ticket.remoteConnect.connected) return;
             Show(overlayRemote);
-            if (appIcons != null && appIcons.childCount == 0)
-                foreach (var key in AppKeys)
-                {
-                    string k = key;
-                    var b = UIFactory.Button($"icon_{key}", appIcons, AppDefs[key].title, UIFactory.Panel, 13);
-                    UIFactory.MinHeight(b.gameObject, 30);
-                    b.onClick.AddListener(() => OpenApp(k));
-                }
+            Hide(startMenu);
+            BuildDesktopIcons();
+            if (connBarLabel != null)
+            {
+                // What mstsc shows: the host you are actually driving, not the ticket you opened it from.
+                string machine = Active.desktop.GetModule(ModuleType.Terminal).Get("machineId");
+                connBarLabel.text = $"{Active.desktop.Identity.slug}-{machine}  —  Remote Desktop Connection";
+            }
+            RenderTrayClock();
+        }
+
+        private void BuildDesktopIcons()
+        {
+            if (desktopIcons == null || desktopIcons.childCount > 0) return;
+            var skin = XPSkin.Get();
+            foreach (var key in AppKeys)
+            {
+                string k = key;
+                var b = XPFactory.DesktopIcon($"icon_{key}", desktopIcons, AppDefs[key].title,
+                    skin != null ? skin.Icon(key) : null);
+                b.onClick.AddListener(() => OpenApp(k));
+            }
+            // My Computer is the shell icon for this machine, so it opens the machine's own app — the same
+            // place XP puts System Properties. Nothing on this desktop is decoration: an icon that does
+            // nothing when clicked is a dead end the player will find within seconds.
+            var mine = XPFactory.DesktopIcon("icon_mycomputer", desktopIcons, "My Computer",
+                skin != null ? skin.Icon("mycomputer") : null);
+            mine.onClick.AddListener(() => OpenApp("system"));
+        }
+
+        /// <summary>Start ▸ Programs — the same app list as the desktop, for players who look there first.</summary>
+        private void ToggleStartMenu()
+        {
+            if (startMenu == null) return;
+            bool open = !startMenu.activeSelf;
+            startMenu.SetActive(open);
+            if (!open || startMenuList == null || startMenuList.childCount > 0) return;
+
+            var skin = XPSkin.Get();
+            foreach (var key in AppKeys)
+            {
+                string k = key;
+                var b = StartMenuEntry(AppDefs[key].title, skin != null ? skin.Icon(key) : null);
+                b.onClick.AddListener(() => { Hide(startMenu); OpenApp(k); });
+            }
+            var off = StartMenuEntry("Disconnect session", null);
+            off.onClick.AddListener(() => { Hide(startMenu); CloseRemoteSession(); });
+        }
+
+        private Button StartMenuEntry(string label, Sprite icon)
+        {
+            var b = XPFactory.TaskButton("start_" + label.GetHashCode(), startMenuList, label, icon, false);
+            var img = b.GetComponent<Image>();
+            img.sprite = null;                       // flat menu row, not a taskbar chip
+            img.color = new Color(1f, 1f, 1f, 0f);
+            b.transition = Selectable.Transition.ColorTint;
+            var colors = b.colors;
+            colors.normalColor = new Color(1f, 1f, 1f, 0f);
+            colors.highlightedColor = XPFactory.Hex(0x316AC5);
+            colors.pressedColor = XPFactory.Hex(0x1F4C9E);
+            colors.fadeDuration = 0.05f;
+            b.colors = colors;
+            var text = b.GetComponentInChildren<Text>();
+            if (text != null) text.color = XPFactory.Ink;
+            UIFactory.MinHeight(b.gameObject, 24f);
+            return b;
         }
 
         private void OpenApp(string key)
@@ -505,7 +678,99 @@ namespace POSTechSupport.UI
             openAppKey = key;
             Active.ticket.openAppKey = key;
             Show(appWindow);
+            if (appWindowRect != null) appWindowRect.SetAsLastSibling();
+            RebuildTaskbar();
             OpenTab(CurrentTab());
+        }
+
+        private void CloseApp()
+        {
+            Hide(appWindow);
+            openAppKey = null;
+            if (Active != null) Active.ticket.openAppKey = null;   // appTabs survive; the open app doesn't
+            RebuildTaskbar();
+        }
+
+        /// <summary>Hides the window but keeps its taskbar button — clicking that brings it back.</summary>
+        private void MinimiseApp()
+        {
+            if (openAppKey == null) return;
+            Hide(appWindow);
+            RebuildTaskbar();
+        }
+
+        private void RestoreApp()
+        {
+            if (openAppKey == null) return;
+            Show(appWindow);
+            if (appWindowRect != null) appWindowRect.SetAsLastSibling();
+            RebuildTaskbar();
+        }
+
+        private void ToggleMaximiseApp()
+        {
+            if (appWindowRect == null || desktopArea == null) return;
+            if (!appMaximised)
+            {
+                restoreSize = appWindowRect.sizeDelta;
+                restorePos = appWindowRect.anchoredPosition;
+                appWindowRect.sizeDelta = desktopArea.rect.size;
+                appWindowRect.anchoredPosition = Vector2.zero;
+            }
+            else
+            {
+                appWindowRect.sizeDelta = restoreSize;
+                appWindowRect.anchoredPosition = restorePos;
+            }
+            appMaximised = !appMaximised;
+        }
+
+        /// <summary>One button per open window. Only one app runs at a time, so this is a list of zero or one.</summary>
+        private void RebuildTaskbar()
+        {
+            if (taskbarApps == null) return;
+            UIFactory.Clear(taskbarApps);
+            if (openAppKey == null) return;
+
+            var skin = XPSkin.Get();
+            bool focused = appWindow != null && appWindow.activeSelf;
+            var task = XPFactory.TaskButton($"task_{openAppKey}", taskbarApps,
+                AppDefs[openAppKey].title, skin != null ? skin.Icon(openAppKey) : null, focused);
+            task.onClick.AddListener(() =>
+            {
+                if (appWindow != null && appWindow.activeSelf) MinimiseApp();
+                else RestoreApp();
+            });
+        }
+
+        /// <summary>Session ends: the desktop closes, but the ticket and the machine's state carry on.</summary>
+        private void CloseRemoteSession()
+        {
+            Hide(startMenu);
+            Hide(overlayRemote);
+        }
+
+        /// <summary>
+        /// Tears the session down between calls. The desktop icons are kept (they are the same seven apps
+        /// every time) but the taskbar, Start menu and window geometry belong to the call that opened them.
+        /// </summary>
+        private void ResetRemoteShell()
+        {
+            openAppKey = null;
+            Hide(startMenu);
+            if (taskbarApps != null) UIFactory.Clear(taskbarApps);
+            if (appMaximised && appWindowRect != null)
+            {
+                appWindowRect.sizeDelta = restoreSize;
+                appWindowRect.anchoredPosition = restorePos;
+            }
+            appMaximised = false;
+        }
+
+        private void RenderTrayClock()
+        {
+            if (trayClock == null || game?.Shift == null) return;
+            trayClock.text = game.Shift.ClockLabel();
         }
 
         /// <summary>Current sub-tab of the open app, persisted in TicketState.appTabs across open/close.</summary>
@@ -528,14 +793,20 @@ namespace POSTechSupport.UI
             if (openAppKey == null || appBody == null || Active == null) return;
             var def = AppDefs[openAppKey];
             string tab = CurrentTab();
-            if (appTitle != null) appTitle.text = $"{def.title}  ▸  {TabLabels[tab]}";
+            if (appTitle != null) appTitle.text = $"{def.title}  -  {TabLabels[tab]}";
+            if (appTitleIcon != null)
+            {
+                var skin = XPSkin.Get();
+                appTitleIcon.sprite = skin != null ? skin.Icon(openAppKey) : null;
+                appTitleIcon.enabled = appTitleIcon.sprite != null;
+            }
 
             RenderTabRow(tab);
             UIFactory.Clear(appBody);
 
             var es = Active.desktop.EffectiveStatus(def.mod);
-            var statusColor = es.status == Status.OK ? UIFactory.Ink : UIFactory.Danger;
-            UIFactory.Label("appstatus", appBody, $"<b>{def.mod} status: {es.status}</b>{(string.IsNullOrEmpty(es.reason) ? "" : "\n" + es.reason)}",
+            var statusColor = es.status == Status.OK ? XPFactory.Ink : XPFactory.InkRed;
+            XPFactory.Label("appstatus", appBody, $"<b>{def.mod} status: {es.status}</b>{(string.IsNullOrEmpty(es.reason) ? "" : "\n" + es.reason)}",
                 14, TextAnchor.UpperLeft, statusColor);
 
             RenderActionsForTab(openAppKey, tab);
@@ -553,9 +824,16 @@ namespace POSTechSupport.UI
             foreach (var t in tabs)
             {
                 string key = t;
-                var b = UIFactory.Button($"tab_{t}", appTabRow, TabLabels[t],
-                    t == current ? UIFactory.Accent : UIFactory.Panel, 12);
-                UIFactory.MinHeight(b.gameObject, 24);
+                var b = XPFactory.Button($"tab_{t}", appTabRow, TabLabels[t], 12);
+                // The current tab is drawn pressed in — XP's property-sheet tabs, minus the notch.
+                if (t == current)
+                {
+                    var skin = XPSkin.Get();
+                    var img = b.GetComponent<Image>();
+                    if (skin != null && skin.buttonPressed != null) img.sprite = skin.buttonPressed;
+                }
+                UIFactory.MinHeight(b.gameObject, 22);
+                XPFactory.FitWidth(b);
                 b.onClick.AddListener(() => OpenTab(key));
             }
         }
@@ -570,8 +848,8 @@ namespace POSTechSupport.UI
                 if (a == null || a.appKey != appKey) continue;
                 if (!string.IsNullOrEmpty(a.appTab) && a.appTab != tab) continue;
                 var action = a;
-                var b = UIFactory.Button($"act_{action.actionId}", appBody, action.actionId + (action.isRisky ? "  (risky)" : ""),
-                    action.isRisky ? UIFactory.Danger : UIFactory.Accent, 13);
+                var b = XPFactory.Button($"act_{action.actionId}", appBody, action.actionId + (action.isRisky ? "  (risky)" : ""),
+                    13, action.isRisky ? XPFactory.InkRed : XPFactory.Ink);
                 UIFactory.MinHeight(b.gameObject, 28);
                 bool canRun = game.Actions.CanExecute(Active.desktop, action);
                 // Anything hosted by POS Manager ▸ Database reads stored records, so it needs the DB up
@@ -617,39 +895,39 @@ namespace POSTechSupport.UI
         {
             var os = Active.desktop.GetModule(ModuleType.OS);
             bool blocking = Active.desktop.graph.OsBlocking(out string why);
-            UIFactory.Label("sys_health", appBody,
+            XPFactory.Label("sys_health", appBody,
                 $"System drive: {Flag(os.Get("diskSpace"), "OK")}\n" +
                 $"Pending restart: {Flag(os.Get("pendingReboot"), "false")}\n" +
                 $"System clock: {Flag(os.Get("systemTime"), "OK")}" +
-                (blocking ? $"\n\n<color=#cc4444>Machine-wide fault ({why}) — everything downstream reads Blocked until this clears.</color>" : ""),
+                (blocking ? $"\n\n<color={XPFactory.TagRed}>Machine-wide fault ({why}) — everything downstream reads Blocked until this clears.</color>" : ""),
                 13, TextAnchor.UpperLeft);
         }
 
         private void RenderSystemServices()
         {
             var os = Active.desktop.GetModule(ModuleType.OS);
-            UIFactory.Label("sys_services", appBody,
+            XPFactory.Label("sys_services", appBody,
                 $"Print Spooler: {Flag(os.Get("spoolerService"), "Running")}\n" +
                 "<i>A stopped service is reported as an Error on the module that needed it, not as Blocked — " +
                 "so the printer still shows you what's wrong.</i>", 13, TextAnchor.UpperLeft);
         }
 
         private static string Flag(string value, string healthy) =>
-            value == healthy ? value : $"<color=#cc4444>{value}</color>";
+            value == healthy ? value : $"<color={XPFactory.TagRed}>{value}</color>";
 
         // --- Terminal ▸ Status (P6) ----------------------------------------------------------------
         private void RenderTerminalStatus()
         {
             var info = Active.desktop.graph.TerminalNetInfo();
             string joined = Active.desktop.GetModule(ModuleType.Terminal).Get("wifiNetwork");
-            UIFactory.Label("netinfo", appBody,
+            XPFactory.Label("netinfo", appBody,
                 $"Joined Wi-Fi: <b>{joined}</b>\nIP (from DHCP): {info.ip}\nGateway: {info.gateway}", 13, TextAnchor.UpperLeft);
 
-            UIFactory.Label("wifihdr", appBody, "Join Wi-Fi network:", 13, TextAnchor.MiddleLeft);
+            XPFactory.Label("wifihdr", appBody, "Join Wi-Fi network:", 13, TextAnchor.MiddleLeft);
             foreach (var ssid in Simulation.WifiTable.NearbyNetworks(Active.desktop.Identity))
             {
                 string s = ssid;
-                var b = UIFactory.Button($"wifi_{ssid}", appBody, ssid + (s == joined ? "  ✓" : ""), UIFactory.Panel, 12);
+                var b = XPFactory.Button($"wifi_{ssid}", appBody, ssid + (s == joined ? "  ✓" : ""), 12);
                 UIFactory.MinHeight(b.gameObject, 26);
                 b.onClick.AddListener(() =>
                 {
@@ -665,24 +943,24 @@ namespace POSTechSupport.UI
         {
             var tx = Active.transactions;
             var auth = Active.ticket.authorization;
-            UIFactory.Label("batchhdr", appBody,
+            XPFactory.Label("batchhdr", appBody,
                 $"<b>Batch #{tx.batchId}</b> — Void only while Open; Refund works after Settle too.\n" +
                 (auth.confirmed
-                    ? "<color=#66bb66>Caller authorization: CONFIRMED.</color>"
-                    : "<color=#cc8844>Caller authorization: NOT confirmed — verify the owner name or ask before touching money.</color>"),
+                    ? $"<color={XPFactory.TagGreen}>Caller authorization: CONFIRMED.</color>"
+                    : $"<color={XPFactory.TagAmber}>Caller authorization: NOT confirmed — verify the owner name or ask before touching money.</color>"),
                 13, TextAnchor.UpperLeft);
 
             for (int i = 0; i < tx.live.Count; i++)
             {
                 int idx = i;
                 var t = tx.live[i];
-                UIFactory.Label($"tx_{i}", appBody, $"#{i + 1}  {t.type}  ${t.amount:0.00}  —  {t.status}", 13, TextAnchor.MiddleLeft);
+                XPFactory.Label($"tx_{i}", appBody, $"#{i + 1}  {t.type}  ${t.amount:0.00}  —  {t.status}", 13, TextAnchor.MiddleLeft);
                 if (t.status == TransStatus.Open) TxButton("Void", idx, TransType.Void);
                 if (t.status is TransStatus.Open or TransStatus.Settled) TxButton("Refund", idx, TransType.Refund);
             }
-            if (tx.live.Count == 0) UIFactory.Label("tx_none", appBody, "Batch is empty.", 13, TextAnchor.MiddleLeft);
+            if (tx.live.Count == 0) XPFactory.Label("tx_none", appBody, "Batch is empty.", 13, TextAnchor.MiddleLeft);
 
-            var sale = UIFactory.Button("tx_sale", appBody, "Authorize new sale  $5.00", UIFactory.Panel, 12);
+            var sale = XPFactory.Button("tx_sale", appBody, "Authorize new sale  $5.00", 12);
             UIFactory.MinHeight(sale.gameObject, 26);
             sale.onClick.AddListener(() =>
             {
@@ -691,7 +969,7 @@ namespace POSTechSupport.UI
                 RenderAppBody();
             });
 
-            var close = UIFactory.Button("tx_close", appBody, "Close batch (settle)", UIFactory.Panel, 12);
+            var close = XPFactory.Button("tx_close", appBody, "Close batch (settle)", 12);
             UIFactory.MinHeight(close.gameObject, 26);
             close.onClick.AddListener(() => Confirm(
                 "Closing the batch settles every Open transaction. After that they can only be REFUNDED, never voided.\n\nClose it?",
@@ -705,8 +983,8 @@ namespace POSTechSupport.UI
 
         private void TxButton(string label, int index, TransType action)
         {
-            var b = UIFactory.Button($"tx_{action}_{index}", appBody, $"   {label} #{index + 1}",
-                action == TransType.Refund ? UIFactory.Danger : UIFactory.Panel, 12);
+            var b = XPFactory.Button($"tx_{action}_{index}", appBody, $"   {label} #{index + 1}", 12,
+                action == TransType.Refund ? XPFactory.InkRed : XPFactory.Ink);
             UIFactory.MinHeight(b.gameObject, 24);
             b.onClick.AddListener(() =>
             {
@@ -732,7 +1010,7 @@ namespace POSTechSupport.UI
         {
             var pos = Active.desktop.GetModule(ModuleType.POSSoftware);
             bool broken = pos.Get("receiptTemplate") == "Broken";
-            UIFactory.Label("rcfg", appBody, $"Receipt template: <b>{pos.Get("receiptTemplate")}</b>", 13, TextAnchor.MiddleLeft);
+            XPFactory.Label("rcfg", appBody, $"Receipt template: <b>{pos.Get("receiptTemplate")}</b>", 13, TextAnchor.MiddleLeft);
 
             var tpl = FindTemplate(ReceiptType.Customer);
             if (tpl?.fields != null)
@@ -742,9 +1020,9 @@ namespace POSTechSupport.UI
                 {
                     // A broken template is exactly "a required field fell out of the mapping" (GDD §14 P5).
                     bool dropped = broken && f.required && f.label == "Total";
-                    sb.AppendLine(dropped ? $"  <color=#cc4444>{f.label} — MISSING from mapping</color>" : $"  {f.label}");
+                    sb.AppendLine(dropped ? $"  <color={XPFactory.TagRed}>{f.label} — MISSING from mapping</color>" : $"  {f.label}");
                 }
-                UIFactory.Label("rtpl", appBody, sb.ToString(), 13, TextAnchor.UpperLeft);
+                XPFactory.Label("rtpl", appBody, sb.ToString(), 13, TextAnchor.UpperLeft);
             }
         }
 
@@ -764,11 +1042,11 @@ namespace POSTechSupport.UI
             string registered = pos.Get("registeredTerminalIp");
             bool ipStale = actualIp != registered;
 
-            UIFactory.Label("conn_ip", appBody,
+            XPFactory.Label("conn_ip", appBody,
                 $"<b>Registered terminal roster</b>\nTerminal's actual IP: {actualIp}\nRegistered on POS: " +
-                (ipStale ? $"<color=#cc4444>{registered} (stale)</color>" : registered), 13, TextAnchor.UpperLeft);
+                (ipStale ? $"<color={XPFactory.TagRed}>{registered} (stale)</color>" : registered), 13, TextAnchor.UpperLeft);
 
-            var reg = UIFactory.Button("registerip", appBody, $"Re-register terminal at {actualIp}", UIFactory.Panel, 12);
+            var reg = XPFactory.Button("registerip", appBody, $"Re-register terminal at {actualIp}", 12);
             UIFactory.MinHeight(reg.gameObject, 28);
             reg.interactable = ipStale;
             reg.onClick.AddListener(() =>
@@ -780,15 +1058,16 @@ namespace POSTechSupport.UI
             });
 
             var db = Active.desktop.graph.DbConnected();
-            UIFactory.Label("conn_db", appBody,
+            XPFactory.Label("conn_db", appBody,
                 $"<b>Database</b>\nHost: {pos.Get("dbHost")}\nStatus: " +
-                (db.ok ? "<color=#66bb66>connected</color>" : $"<color=#cc4444>{db.reason}</color>"), 13, TextAnchor.UpperLeft);
+                (db.ok ? $"<color={XPFactory.TagGreen}>connected</color>" : $"<color={XPFactory.TagRed}>{db.reason}</color>"),
+                13, TextAnchor.UpperLeft);
 
             string correctDbHost = Active.desktop.Identity.dbHost;
             if (!db.ok && pos.Get("dbHost") != correctDbHost)
             {
-                var fix = UIFactory.Button("fixdbhost", appBody,
-                    $"Point DB host back to {correctDbHost}", UIFactory.Panel, 12);
+                var fix = XPFactory.Button("fixdbhost", appBody,
+                    $"Point DB host back to {correctDbHost}", 12);
                 UIFactory.MinHeight(fix.gameObject, 28);
                 fix.onClick.AddListener(() =>
                 {
@@ -806,17 +1085,18 @@ namespace POSTechSupport.UI
             var pos = Active.desktop.GetModule(ModuleType.POSSoftware);
             var login = Active.desktop.graph.StaffLoginStatus();
             string thisMachine = Active.desktop.GetModule(ModuleType.Terminal).Get("machineId");
-            UIFactory.Label("staff_state", appBody,
+            XPFactory.Label("staff_state", appBody,
                 $"<b>Staff account</b>  <i>(this register: {thisMachine})</i>\nRole: {Blank(pos.Get("staffRole"))}\n" +
                 $"Assigned terminal: {Blank(pos.Get("staffTerminal"))}\nSynced to terminal: {pos.Get("terminalSynced")}\n\nLogin check: " +
-                (login.ok ? "<color=#66bb66>OK</color>" : $"<color=#cc4444>{login.reason}</color>"), 13, TextAnchor.UpperLeft);
+                (login.ok ? $"<color={XPFactory.TagGreen}>OK</color>" : $"<color={XPFactory.TagRed}>{login.reason}</color>"),
+                13, TextAnchor.UpperLeft);
 
             StaffFix("Assign role: Sale", () => pos.Set("staffRole", "Sale"));
             StaffFix($"Assign to this terminal ({thisMachine})", () => pos.Set("staffTerminal", thisMachine));
             StaffFix("Sync POS → terminal", () => pos.Set("terminalSynced", "true"));
 
             // GDD §15's trap: handing out Admin "to save time" grants refund/void/close-batch rights.
-            var admin = UIFactory.Button("staff_admin", appBody, "Assign role: Admin  (risky — over-privileged)", UIFactory.Danger, 12);
+            var admin = XPFactory.Button("staff_admin", appBody, "Assign role: Admin  (risky — over-privileged)", 12, XPFactory.InkRed);
             UIFactory.MinHeight(admin.gameObject, 28);
             admin.onClick.AddListener(() => Confirm(
                 "Admin includes refund, void and close-batch rights — far more than a new hire needs.\n\n" +
@@ -831,7 +1111,7 @@ namespace POSTechSupport.UI
 
         private void StaffFix(string label, System.Action apply)
         {
-            var b = UIFactory.Button("staff_" + label.GetHashCode(), appBody, label, UIFactory.Panel, 12);
+            var b = XPFactory.Button("staff_" + label.GetHashCode(), appBody, label, 12);
             UIFactory.MinHeight(b.gameObject, 26);
             b.onClick.AddListener(() =>
             {
@@ -848,19 +1128,19 @@ namespace POSTechSupport.UI
         private void RenderDatabase()
         {
             var db = Active.desktop.graph.DbConnected();
-            UIFactory.Label("db_state", appBody, db.ok
+            XPFactory.Label("db_state", appBody, db.ok
                 ? "<b>Transaction history</b> — reprints read the stored receipt snapshot."
-                : $"<b>Transaction history</b>\n<color=#cc4444>Unavailable — {db.reason}</color>", 13, TextAnchor.UpperLeft);
+                : $"<b>Transaction history</b>\n<color={XPFactory.TagRed}>Unavailable — {db.reason}</color>", 13, TextAnchor.UpperLeft);
             if (!db.ok) return;
 
             foreach (var record in Active.transactions.archive)
             {
                 var rec = record;
-                UIFactory.Label($"arc_{rec.GetHashCode()}", appBody,
+                XPFactory.Label($"arc_{rec.GetHashCode()}", appBody,
                     $"{rec.day}  {rec.type}  ${rec.amount:0.00}  —  {rec.status}" +
                     (string.IsNullOrEmpty(rec.lastPrintResult) ? "" : $"\n    last reprint: {rec.lastPrintResult}"),
                     13, TextAnchor.MiddleLeft);
-                var b = UIFactory.Button($"reprint_{rec.GetHashCode()}", appBody, "   Reprint customer copy", UIFactory.Panel, 12);
+                var b = XPFactory.Button($"reprint_{rec.GetHashCode()}", appBody, "   Reprint customer copy", 12);
                 UIFactory.MinHeight(b.gameObject, 24);
                 b.onClick.AddListener(() =>
                 {
@@ -880,7 +1160,7 @@ namespace POSTechSupport.UI
                 string tag = l.kind switch { SessionLogKind.Clue => "🔎", SessionLogKind.RedHerring => "⚠", SessionLogKind.Result => "•", _ => "" };
                 sb.AppendLine($"{tag} {l.text}");
             }
-            UIFactory.Label("sessionlog", appBody, "<b>Session log</b>\n" + sb, 13, TextAnchor.UpperLeft);
+            XPFactory.Label("sessionlog", appBody, "<b>Session log</b>\n" + sb, 13, TextAnchor.UpperLeft);
         }
 
         private void Log(string text) =>
@@ -962,11 +1242,13 @@ namespace POSTechSupport.UI
                     $"Calls tonight: {game.Tickets.history.Count}\n" +
                     $"Resolved cleanly: {score.resolvedCount}\n" +
                     $"Degraded / made worse: {score.degradedCount}\n" +
+                    $"Missed while you were free: {game.Tickets.CountBy(CallLifecycleStatus.Missed)}\n" +
+                    $"Taken by another tech: {game.Tickets.CountBy(CallLifecycleStatus.HandledByOtherTech)}\n" +
                     $"Complaint mails: {game.Mailbox.StrikeCount()}\n" +
                     $"Paycheck: ${game.Campaign.state.currency}\n\n" +
                     (nightFailed ? $"<color=#cc4444>Night FAILED ({game.Mailbox.StrikeCount()} strikes) — +1 warning.</color>" : "Night passed.");
             HideAll(overlayIncoming, overlayTicket, overlayRemote, appWindow, overlayConfirm, overlayKb, overlayMailbox);
-            openAppKey = null;
+            ResetRemoteShell();
             ShowScreen(screenEndOfNight);
         }
 
@@ -996,6 +1278,22 @@ namespace POSTechSupport.UI
         private static void HideAll(params GameObject[] gos) { foreach (var g in gos) Hide(g); }
         private static void SetInteractable(Button b, bool v) { if (b != null) b.interactable = v; }
         private static void Wire(Button b, UnityEngine.Events.UnityAction a) { if (b != null) { b.onClick.RemoveAllListeners(); b.onClick.AddListener(a); } }
+
+        /// <summary>What the call log shows per closed call — lifecycle first, outcome only when judged.</summary>
+        private static string CallOutcomeLabel(ProblemInstance p) => p.ticket.lifecycle switch
+        {
+            CallLifecycleStatus.HandledByOtherTech => "→ another tech took it",
+            CallLifecycleStatus.Missed => "<color=#cc4444>✗ missed</color>",
+            CallLifecycleStatus.Abandoned => "<color=#cc4444>✗ abandoned mid-call</color>",
+            CallLifecycleStatus.Closed => p.ticket.closedOutcome switch
+            {
+                ClosedOutcome.Resolved => "<color=#66bb66>✓ resolved</color>",
+                ClosedOutcome.Degraded => "<color=#cc4444>✗ degraded</color>",
+                ClosedOutcome.Unauthorized => "⊘ unauthorized caller — refused",
+                _ => p.ticket.closedOutcome.ToString(),
+            },
+            _ => p.ticket.lifecycle.ToString(),
+        };
 
         private static string FactLabel(FactType t) => t switch
         {

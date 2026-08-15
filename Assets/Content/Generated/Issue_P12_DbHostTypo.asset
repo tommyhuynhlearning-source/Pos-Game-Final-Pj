@@ -19,15 +19,15 @@ MonoBehaviour:
   faults:
   - module: 1
     stateField: dbHost
-    faultValue: db.sunrise-diner.local
+    faultValue: '{DB_HOST_TYPO}'
   symptoms:
   - layman: A customer wants his receipt sent again and the system says it can't
       find anything.
     technical: "POSSoftware.dbHost misspelled \u2014 the record store is unreachable."
   clues:
   - revealedBy: 10
-    clueText: 'Connections: database host is "db.sunrise-diner.local" and won''t
-      resolve. Note the extra hyphen.'
+    clueText: 'Connections: database host is "{DB_HOST_TYPO}" and won''t resolve.
+      Compare it character by character with {DB_HOST}.'
     isRedHerring: 0
   - revealedBy: 2
     clueText: "Test page prints fine \u2014 the printer itself is healthy."
@@ -37,12 +37,12 @@ MonoBehaviour:
     - module: 1
       field: dbHost
       op: 0
-      expectedValue: db.sunrisediner.local
+      expectedValue: '{DB_HOST}'
     rootCauseFixed:
     - module: 1
       field: dbHost
       op: 0
-      expectedValue: db.sunrisediner.local
+      expectedValue: '{DB_HOST}'
     requiresTestPass: 0
     testReceiptType: 0
   blockedByIssueIds:

@@ -16,22 +16,24 @@ namespace POSTechSupport.Logic
     public class StoreDirectory
     {
         public readonly List<StoreRecord> records;
-        private readonly List<StoreRecord> callers;
 
-        /// <param name="callers">Accounts allowed to be on the phone. Null = any record may call.</param>
-        public StoreDirectory(List<StoreRecord> records, List<StoreRecord> callers = null)
+        public StoreDirectory(List<StoreRecord> records)
         {
             this.records = records ?? new List<StoreRecord>();
-            this.callers = callers != null && callers.Count > 0 ? callers : this.records;
         }
 
+        /// <summary>Any account in the directory may be the one on the phone tonight.</summary>
         public StoreRecord PickCaller() =>
-            callers.Count == 0 ? null : callers[Random.Range(0, callers.Count)];
+            records.Count == 0 ? null : records[Random.Range(0, records.Count)];
 
         /// <summary>
-        /// A record the caller could be confused with: shares its first word or its trade word.
-        /// This is what a misremembering caller states instead of their own shop name, so the wrong
-        /// answer is a near miss the player has to catch, not a random unrelated shop.
+        /// A record the caller could be confused with — what a misremembering caller states instead of
+        /// their own shop name, so the wrong answer is a near miss the player has to catch.
+        ///
+        /// Candidates are RANKED, not pooled. Sharing a trade word alone is the weakest kind of near miss
+        /// and there are usually many of those, so an unranked pick reaches for "Station Road Bookshop"
+        /// when "Fairview Bookshop" — same trade AND a sibling first word — was sitting right there.
+        /// Ranking keeps the hardest confusion the most likely one.
         /// </summary>
         public StoreRecord PickConfusable(StoreRecord caller)
         {
@@ -39,11 +41,28 @@ namespace POSTechSupport.Logic
 
             string first = FirstWord(caller.storeName);
             string trade = LastWord(caller.storeName);
-            var near = records.Where(r => r != caller &&
-                                          (FirstWord(r.storeName) == first || LastWord(r.storeName) == trade))
-                              .ToList();
-            if (near.Count == 0) near = records.Where(r => r != caller).ToList();
-            return near.Count == 0 ? caller : near[Random.Range(0, near.Count)];
+            var others = records.Where(r => r != caller).ToList();
+            if (others.Count == 0) return caller;
+
+            bool SameFamily(StoreRecord r) => r.familyKey != null && r.familyKey == caller.familyKey;
+
+            var tiers = new[]
+            {
+                // 1. Same authored family AND one word literally shared — "Corner House Barbers" against
+                //    "Corner House Pharmacy" or "Cornerstone Barbers". The tightest confusion available.
+                others.Where(r => SameFamily(r) &&
+                                  (FirstWord(r.storeName) == first || LastWord(r.storeName) == trade)).ToList(),
+                // 2. Same family, no shared word: sibling first words under different trades.
+                others.Where(SameFamily).ToList(),
+                // 3. Same first word from another family (possible once families share a word).
+                others.Where(r => FirstWord(r.storeName) == first).ToList(),
+                // 4. Same trade only — a real but softer near miss.
+                others.Where(r => LastWord(r.storeName) == trade).ToList(),
+                others,
+            };
+
+            var pool = tiers.First(t => t.Count > 0);
+            return pool[Random.Range(0, pool.Count)];
         }
 
         private static string FirstWord(string s)
@@ -91,48 +110,72 @@ namespace POSTechSupport.Logic
             var order = Enumerable.Range(0, clusters.Length).OrderBy(_ => Random.value).Take(take);
 
             var records = new List<StoreRecord>();
-            var usedNames = new HashSet<string>();
-            var usedIds = new HashSet<string>();
-            var usedOwners = new HashSet<string>();
+            var used = new UsedValues();
+            var usedTrades = new HashSet<string>();
 
             foreach (int c in order)
             {
                 var variants = clusters[c].OrderBy(_ => Random.value).ToArray();
-                string tradeA = trades[Random.Range(0, trades.Length)];
-                string tradeB = tradeA;
-                for (int guard = 0; guard < 8 && tradeB == tradeA; guard++)
-                    tradeB = trades[Random.Range(0, trades.Length)];
+                string family = variants[0];      // the family's own label, for PickConfusable
+                string tradeA = PickTrade(trades, usedTrades);
+                string tradeB = PickTrade(trades, usedTrades, avoid: tradeA);
 
                 // Same first word, different trade — "Sunrise Diner" vs "Sunrise Bakery".
-                Add(records, usedNames, usedIds, usedOwners, $"{variants[0]} {tradeA}");
+                Add(records, used, family, $"{variants[0]} {tradeA}");
                 if (tradeB != tradeA)
-                    Add(records, usedNames, usedIds, usedOwners, $"{variants[0]} {tradeB}");
+                    Add(records, used, family, $"{variants[0]} {tradeB}");
 
                 // Sibling first word, same trade — "Sunset Diner". The classic wrong pick.
                 if (variants.Length > 1)
-                    Add(records, usedNames, usedIds, usedOwners, $"{variants[1]} {tradeA}");
+                    Add(records, used, family, $"{variants[1]} {tradeA}");
                 if (variants.Length > 2 && Random.value < 0.5f)
-                    Add(records, usedNames, usedIds, usedOwners, $"{variants[2]} {tradeA}");
+                    Add(records, used, family, $"{variants[2]} {tradeA}");
             }
 
             return new StoreDirectory(records);
         }
 
-        private void Add(List<StoreRecord> into, HashSet<string> names, HashSet<string> ids,
-                         HashSet<string> owners, string storeName)
+        /// <summary>
+        /// Prefers a trade no family has used yet. Without this, several families can land on the same
+        /// trade and the directory reads as five bookshops — which both looks wrong and turns the trade
+        /// word into a coincidence rather than a discriminator.
+        /// </summary>
+        private static string PickTrade(string[] trades, HashSet<string> used, string avoid = null)
         {
-            if (string.IsNullOrWhiteSpace(storeName) || !names.Add(storeName)) return;
+            var fresh = trades.Where(t => t != avoid && !used.Contains(t)).ToList();
+            var pool = fresh.Count > 0 ? fresh : trades.Where(t => t != avoid).ToList();
+            if (pool.Count == 0) return avoid;
+            string pick = pool[Random.Range(0, pool.Count)];
+            used.Add(pick);
+            return pick;
+        }
+
+        /// <summary>
+        /// Every field a player might use to tell two accounts apart has to be unique across the whole
+        /// directory — including the remote ID, since two shops sharing one would make the wrong record
+        /// connect to the right machine and quietly break the only check the game actually enforces.
+        /// </summary>
+        private class UsedValues
+        {
+            public readonly HashSet<string> names = new();
+            public readonly HashSet<string> ids = new();
+            public readonly HashSet<string> owners = new();
+            public readonly HashSet<string> remoteIds = new();
+        }
+
+        private void Add(List<StoreRecord> into, UsedValues used, string familyKey, string storeName)
+        {
+            if (string.IsNullOrWhiteSpace(storeName) || !used.names.Add(storeName)) return;
 
             into.Add(new StoreRecord
             {
-                storeId = UniqueId(ids),
+                storeId = UniqueId(used.ids),
                 storeName = storeName,
-                ownerName = UniqueOwner(owners),
+                ownerName = UniqueOwner(used.owners),
                 phoneNumber = $"555-0{Random.Range(100, 1000)}",
                 address = $"{Random.Range(3, 900)} {Pick(table?.streetNames, StoreNameTableSO.Defaults.StreetNames)}",
-                remoteId = $"{Random.Range(100, 1000)} {Random.Range(100, 1000)} {Random.Range(100, 1000)}",
-                fixedPasscode = Passcode(),
-                isRealAccount = false,     // meaningless here: the caller is chosen per ticket
+                remoteId = UniqueRemoteId(used.remoteIds),
+                familyKey = familyKey,
                 machines = MachinesFromTemplate(),
             });
         }
@@ -198,12 +241,15 @@ namespace POSTechSupport.Logic
             return $"{Pick(table?.ownerFirstNames, StoreNameTableSO.Defaults.FirstNames)} {used.Count}";
         }
 
-        private static string Passcode()
+        private static string UniqueRemoteId(HashSet<string> used)
         {
-            const string chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-            var s = new char[5];
-            for (int i = 0; i < 5; i++) s[i] = chars[Random.Range(0, chars.Length)];
-            return new string(s);
+            for (int i = 0; i < 64; i++)
+            {
+                string id = $"{Random.Range(100, 1000)} {Random.Range(100, 1000)} {Random.Range(100, 1000)}";
+                if (used.Add(id)) return id;
+            }
+            return $"{Random.Range(100, 1000)} {Random.Range(100, 1000)} {used.Count + 100}";
         }
+
     }
 }
